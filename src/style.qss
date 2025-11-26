@@ -1,0 +1,74 @@
+QWidget {
+  background-color: #121212;
+  color: #dddddd;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+}
+
+QLabel#title {
+  font-size: 32px;
+  font-weight: bold;
+  color: #aaaaff;
+}
+QLabel#subtitle {
+  font-size: 16px;
+  color: #aaaaff;
+  letter-spacing: 1px;
+}
+QLabel#screenTitle {
+    font-size: 24px;
+    font-weight: bold;
+    color: #f0f0f0;
+    text-align: center;
+}
+
+QPushButton {
+  background-color: #333333;
+  border: 2px solid #777777;
+  border-radius: 0px;
+  padding: 8px 16px;
+  min-width: 120px;
+  color: #eeeeee;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+QPushButton:hover {
+  border: 2px solid #aaaaaa;
+  background-color: #444444;
+}
+QPushButton:pressed {
+  background-color: #222222;
+  border-color: #666666;
+}
+
+QPushButton#exitButton {
+  background-color: #550000;
+  border: 2px solid #aa4444;
+  color: #ffaaaa;
+}
+QPushButton#exitButton:hover {
+  border-color: #dd8888;
+  background-color: #660000;
+}
+QPushButton#backButton {
+  background-color: #222244;
+  border: 2px solid #555588;
+  color: #aaaaff;
+}
+QPushButton#backButton:hover {
+  background-color: #333366;
+  border-color: #8888bb;
+}
+
+QLineEdit, QComboBox {
+  padding: 6px;
+  border: 2px solid #555555;
+  border-radius: 0px;
+  background-color: #1c1c1c;
+  color: #dddddd;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+}
+QLineEdit:focus, QComboBox:focus {
+  border-color: #888888;
+}

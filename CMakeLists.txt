@@ -9,6 +9,7 @@ set(CMAKE_AUTOUIC ON)
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets)
 
 set(PROJECT_SOURCES src/main.cpp)
+file(GLOB_RECURSE PROJECT_SOURCES src/*.cpp src/*.h)
 
 add_executable(TagPro ${PROJECT_SOURCES})
 target_link_libraries(TagPro Qt6::Core Qt6::Widgets)
