@@ -30,6 +30,9 @@ void Server::handleClient(SOCKET clientSocket, std::atomic<bool>* finishedFlag) 
         // Send a simple echo response
         const char* response = "Message received by server";
         send(clientSocket, response, strlen(response), 0);
+
+        // TODO:
+        // Add command to server queue
     }
 
     // Clean up this specific client socket
@@ -38,9 +41,8 @@ void Server::handleClient(SOCKET clientSocket, std::atomic<bool>* finishedFlag) 
     *finishedFlag = true;
 }
 
-void Server::run() {
-    running = true;
-    while (running) {
+void Server::listenForClients() {
+    while (isRunning) {
 
         // Garbage Collector-esque
         auto it = clientThreads.begin();
@@ -101,17 +103,17 @@ void Server::run() {
     }
 }
 
-void Server::init() {
+bool Server::init() {
     if (!initSockets()) {
         qErrnoWarning("Socket initialization failed.\n", 200);
-        return;
+        return false;
     }
 
     serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (serverSocket == INVALID_SOCKET) {
         qErrnoWarning("Error creating socket.\n", 200);
         cleanupSockets();
-        return;
+        return false;
     }
 
     sockaddr_in serverAddr;
@@ -123,17 +125,21 @@ void Server::init() {
         qErrnoWarning("Bind failed. Port might be in use.\n", 200);
         closeSocket(serverSocket);
         cleanupSockets();
-        return;
+        return false;
     }
 
     if (listen(serverSocket, SOMAXCONN) == SOCKET_ERROR) {
         qErrnoWarning("Listen failed.\n", 200);
         closeSocket(serverSocket);
         cleanupSockets();
-        return;
+        return false;
     }
 
-    qInfo() << "Listening on port " << port << "...\n";
+    {
+        std::lock_guard<std::mutex> lock(consoleMutex);
+        qInfo() << "Listening on port " << port << "...\n";
+    }
+    return true;
 }
 
 Server::Server(unsigned int port) {
@@ -142,7 +148,7 @@ Server::Server(unsigned int port) {
 }
 
 Server::~Server() {
-    running = false;
+    isRunning = false;
     closeSocket(serverSocket);
     cleanupSockets();
 

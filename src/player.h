@@ -6,19 +6,24 @@
 #include <QDebug>
 #include <QKeyEvent>
 
-class Player : public QGraphicsEllipseItem
+class Player
 {
 public:
-    Player(bool isLocal = false);
+    Player();
 
-    void keyPressEvent(QKeyEvent * event);
-
+    const QVector2D& getPosition() { return m_position; }
+    void setPosition(QVector2D& position) { m_position = position; }
     void update(unsigned int dt);
+
+    void keyPressed(int keyCode);
+    void keyReleased(int keyCode);
 private:
-    float damping = 0.98;
-    bool isLocal = false;
-    QVector2D velocity;
-    QVector2D accel;
+    float m_damping = 0.98;
+
+    QSet<int> m_keysPressed;
+    QVector2D m_position;
+    QVector2D m_velocity;
+    QVector2D m_acceleration;
 };
 
 #endif // PLAYER_H

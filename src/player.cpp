@@ -1,47 +1,41 @@
 #include "player.h"
 
-Player::Player(bool isLocal)
-    : velocity(0, 0),
-    accel(0, 0)
-{
-    if (isLocal) {
-        this->isLocal = isLocal;
-        setFlag(QGraphicsItem::ItemIsFocusable);
-        setFocus();
-    }
-
-}
+Player::Player() :
+    m_position(0, 0),
+    m_velocity(0, 0),
+    m_acceleration(0, 0) {}
 
 void Player::update(unsigned int dt) {
-    velocity += accel * dt;
-    velocity *= pow(damping, dt);
-    setPos(x() + velocity.x(), y() + velocity.y());
+    if (m_keysPressed.contains(Qt::Key_Up)) {
+        m_acceleration.setY(-1);
+    } else {
+        m_acceleration.setY(0);
+    }
+    if (m_keysPressed.contains(Qt::Key_Down)) {
+        m_acceleration.setY(1);
+    } else {
+        m_acceleration.setY(0);
+    }
+    if (m_keysPressed.contains(Qt::Key_Left)) {
+        m_acceleration.setX(-1);
+    } else {
+        m_acceleration.setX(0);
+    }
+    if (m_keysPressed.contains(Qt::Key_Right)) {
+        m_acceleration.setX(1);
+    } else {
+        m_acceleration.setX(0);
+    }
+
+    m_velocity += m_acceleration * dt;
+    m_velocity *= pow(m_damping, dt);
+    m_position += m_velocity;
 }
 
-void Player::keyPressEvent(QKeyEvent *event)
-{
-    if (event->key() == Qt::Key_Left)
-    {
-        accel.setX(1);
-    }
-    else if (event->key() == Qt::Key_Right)
-    {
-        accel.setX(-1);
-    }
-    else
-    {
-        accel.setX(0);
-    }
-    if (event->key() == Qt::Key_Up)
-    {
-        accel.setY(-1);
-    }
-    else if (event->key() == Qt::Key_Down)
-    {
-        accel.setY(1);
-    }
-    else
-    {
-        accel.setY(0);
-    }
+void Player::keyPressed(int keyCode) {
+    m_keysPressed.insert(keyCode);
+}
+
+void Player::keyReleased(int keyCode) {
+    m_keysPressed.remove(keyCode);
 }

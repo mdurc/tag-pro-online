@@ -4,6 +4,7 @@
 #include <thread>
 #include <atomic>
 #include <vector>
+#include <queue>
 #include <mutex>
 #include "game.h"
 #include "network.h"
@@ -24,25 +25,38 @@ struct ClientInfo {
     ClientInfo(const ClientInfo&) = delete;
 };
 
+struct GameEvent {
+    uint32_t playerId;
+    float x;
+    float y;
+};
+
 class Server
 {
 public:
     Server(unsigned int port = 12345);
     ~Server();
 
-    void run();
+    void listenForClients();
 private:
-    void init();
+    bool init();
     void handleClient(SOCKET clientSocket, std::atomic<bool>* finished_flag);
 
+    void handleEventQueue();
+    void notifyAll(char* msg);
+
+    // Game stuffs
+    void update();
     Game game;
+
+    std::mutex queueMutex;
+    std::queue<GameEvent> eventQueue;
 
     // Network Variables
     unsigned int port;
     SOCKET serverSocket = -1;
-    SOCKET clientSocket = -1;
     std::thread netThread;
-    std::atomic<bool> running; // Flag to stop thread safely
+    std::atomic<bool> isRunning; // Flag to stop thread safely
 
     std::vector<std::unique_ptr<ClientInfo>> clientThreads;
 };
