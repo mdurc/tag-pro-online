@@ -16,9 +16,7 @@ void StartScreen::onJoinClicked() { stackedWidget->setCurrentIndex(2); }
 void StartScreen::onStartGameClicked() { qDebug() << "Start as host"; }
 
 void StartScreen::onConnectClicked(QString ip, QString port) {
-    if (client) {
-        delete client;
-    }
+    closeClient();
     client = new Client();
     client->connect(port.toInt(), ip.toStdString().c_str());
 }

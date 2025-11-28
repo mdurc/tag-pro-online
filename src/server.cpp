@@ -26,12 +26,16 @@ Server::~Server() {
     }
 }
 
-void Server::run() {
-    lobbyThread = std::thread(&Server::listenForClients, this);
+void Server::run(bool inBackground) {
+    isRunning = true;
+    if (inBackground) {
+        lobbyThread = std::thread(&Server::listenForClients, this);
+    } else {
+        listenForClients();
+    }
 }
 
 void Server::listenForClients() {
-    isRunning = true;
     while (isRunning) {
 
         // Garbage Collector-esque

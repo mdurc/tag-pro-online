@@ -6,7 +6,16 @@
 
 std::mutex consoleMutex;
 
+int server_main(int argc, char* argv[]) {
+    Server server;
+    server.init();
+    bool inBackground = false;
+    server.run(inBackground);
+    return 0;
+}
+
 int main(int argc, char* argv[]) {
+  // return server_main(argc, argv);
   QApplication app(argc, argv);
 
   QMainWindow window;
@@ -16,10 +25,6 @@ int main(int argc, char* argv[]) {
 
   window.setCentralWidget(new StartScreen());
   window.show();
-
-  Server server;
-  server.init();
-  server.run();
 
   return app.exec();
 }

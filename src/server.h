@@ -38,7 +38,7 @@ public:
     ~Server();
 
     bool init();
-    void run();
+    void run(bool inBackground = true);
 private:
     void listenForClients();
     void handleClient(SOCKET clientSocket, std::atomic<bool>* finished_flag);
