@@ -14,7 +14,7 @@ inline bool initSockets() {
     return WSAStartup(MAKEWORD(2, 2), &wsaData) == 0;
 }
 inline void cleanupSockets() { WSACleanup(); }
-#else
+#else // _WIN32
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
@@ -26,5 +26,5 @@ using SOCKET = int;
 inline void closeSocket(SOCKET sock) { close(sock); }
 inline bool initSockets() { return true; }
 inline void cleanupSockets() {}
-#endif
+#endif // _WIN32
 #endif // NETWORK_H

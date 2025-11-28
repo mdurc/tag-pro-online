@@ -26,6 +26,7 @@ void Player::update(unsigned int dt) {
     } else {
         m_acceleration.setX(0);
     }
+    m_acceleration.normalize();
 
     m_velocity += m_acceleration * dt;
     m_velocity *= pow(m_damping, dt);

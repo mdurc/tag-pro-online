@@ -1,7 +1,10 @@
 #include <QApplication>
 #include <QMainWindow>
 
+#include "server.h"
 #include "start_screen.h"
+
+std::mutex consoleMutex;
 
 int main(int argc, char* argv[]) {
   QApplication app(argc, argv);
@@ -13,6 +16,10 @@ int main(int argc, char* argv[]) {
 
   window.setCentralWidget(new StartScreen());
   window.show();
+
+  Server server;
+  server.init();
+  server.run();
 
   return app.exec();
 }

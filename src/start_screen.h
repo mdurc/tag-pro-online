@@ -3,6 +3,7 @@
 
 #include <QStackedWidget>
 #include <QWidget>
+#include "client.h"
 
 class StartScreen : public QWidget {
   Q_OBJECT
@@ -15,7 +16,8 @@ private slots:
   void onJoinClicked();
   void onBackClicked();
   void onStartGameClicked();
-  void onConnectClicked();
+  void onConnectClicked(QString ip, QString port);
+  void closeClient();
 
 private:
   QStackedWidget* stackedWidget;
@@ -24,6 +26,8 @@ private:
   QWidget* createMainMenu();
   QWidget* createHostScreen();
   QWidget* createJoinScreen();
+
+  Client* client;
 };
 
 #endif

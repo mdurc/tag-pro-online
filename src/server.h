@@ -37,13 +37,15 @@ public:
     Server(unsigned int port = 12345);
     ~Server();
 
-    void listenForClients();
-private:
     bool init();
+    void run();
+private:
+    void listenForClients();
     void handleClient(SOCKET clientSocket, std::atomic<bool>* finished_flag);
 
     void handleEventQueue();
     void notifyAll(char* msg);
+    void notifyAllOthers(char* msg, SOCKET client);
 
     // Game stuffs
     void update();
@@ -55,7 +57,7 @@ private:
     // Network Variables
     unsigned int port;
     SOCKET serverSocket = -1;
-    std::thread netThread;
+    std::thread lobbyThread;
     std::atomic<bool> isRunning; // Flag to stop thread safely
 
     std::vector<std::unique_ptr<ClientInfo>> clientThreads;

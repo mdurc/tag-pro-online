@@ -9,10 +9,17 @@
 #pragma pack(push, 1)
 
 struct GameState{
-    uint32_t game_id;
+    // ID of the lobby the game is hosted in
+    uint32_t lobby_id;
+
+    // ID of the given player
+    uint8_t player_id;
+    // ID of the map
     uint8_t map_id;
+
     uint8_t redScore;
     uint8_t blueScore;
+
     QVector2D redTeamPosition[4];
     QVector2D blueTeamPosition[4];
 };
