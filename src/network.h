@@ -3,6 +3,11 @@
 
 #pragma once
 
+// maybe use qWarning/qDebug/qCritical/qInfo
+#define LOG(fmt, ...) \
+    { std::lock_guard<std::mutex> lock(consoleMutex); \
+      qInfo().noquote() << QString().asprintf(fmt, ##__VA_ARGS__); }
+
 #ifdef _WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>

@@ -4,7 +4,6 @@
 #include <thread>
 #include <atomic>
 #include <vector>
-#include <queue>
 #include <mutex>
 #include "game.h"
 #include "network.h"
@@ -15,20 +14,15 @@ struct ClientInfo {
     std::thread thread;
     std::atomic<bool> finished{false}; // Flag to track status
     SOCKET socket;
+    uint32_t playerId;
 
     // Helper to make moving this struct into a vector easier
-    ClientInfo(SOCKET s) : socket(s) {}
+    ClientInfo(SOCKET s, uint32_t id) : socket(s), playerId(id) {}
     bool joinable() { return thread.joinable(); }
-    void join() { thread.join(); }
+    void join() { if (thread.joinable()) thread.join(); }
 
     // Disable copying (threads can't be copied), allow moving
     ClientInfo(const ClientInfo&) = delete;
-};
-
-struct GameEvent {
-    uint32_t playerId;
-    float x;
-    float y;
 };
 
 class Server
@@ -39,27 +33,27 @@ public:
 
     bool init();
     void run(bool inBackground = true);
+    void stop();
 private:
     void listenForClients();
-    void handleClient(SOCKET clientSocket, std::atomic<bool>* finished_flag);
+    void cleanupClientThreads();
 
-    void handleEventQueue();
-    void notifyAll(char* msg);
-    void notifyAllOthers(char* msg, SOCKET client);
+    void handleClient(SOCKET clientSocket, uint32_t playerId, std::atomic<bool>* finished_flag);
 
-    // Game stuffs
-    void update();
-    Game game;
+    void broadcastPlayerList(SOCKET client = -1);
+    void notifyAll(const char* msg);
+    void notifyAllOthers(const char* msg, SOCKET client);
+    void sendMessage(const char* msg, SOCKET client);
 
-    std::mutex queueMutex;
-    std::queue<GameEvent> eventQueue;
+    uint32_t nextPlayerId = 1;
 
     // Network Variables
     unsigned int port;
     SOCKET serverSocket = -1;
     std::thread lobbyThread;
-    std::atomic<bool> isRunning; // Flag to stop thread safely
+    std::atomic<bool> isRunning{false}; // Flag to stop thread safely
 
+    std::mutex clientsMutex;
     std::vector<std::unique_ptr<ClientInfo>> clientThreads;
 };
 

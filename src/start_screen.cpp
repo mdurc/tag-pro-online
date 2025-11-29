@@ -5,25 +5,99 @@
 #include <QFile>
 #include <QLabel>
 #include <QLineEdit>
+#include <QListWidget>
 #include <QPushButton>
 #include <QVBoxLayout>
 
-StartScreen::StartScreen(QWidget* parent) : QWidget(parent) { setupUI(); }
+LobbyScreen::LobbyScreen(QWidget* parent) : QWidget(parent) {
+    QVBoxLayout* layout = new QVBoxLayout(this);
 
+    QLabel* title = new QLabel("Lobby");
+    title->setObjectName("screenTitle");
+
+    playerList = new QListWidget();
+    leaveButton = new QPushButton("Leave Lobby");
+
+    layout->addWidget(title);
+    layout->addWidget(playerList);
+    layout->addWidget(leaveButton);
+
+    connect(leaveButton, &QPushButton::clicked, this, [this]() {
+        emit leaveLobbyRequested();
+    });
+}
+
+void LobbyScreen::updatePlayerList(const QStringList& players) {
+    playerList->clear();
+    for (const QString& player : players) {
+        playerList->addItem(player);
+    }
+}
+
+StartScreen::StartScreen(QWidget* parent) : QWidget(parent) { setupUI(); }
+StartScreen::~StartScreen() {
+    cleanupServerClient();
+}
+void StartScreen::closeEvent(QCloseEvent *event) {
+    cleanupServerClient();
+    event->accept();
+}
+void StartScreen::onLobbyLeave() {
+    cleanupServerClient();
+    stackedWidget->setCurrentIndex(0);
+}
 void StartScreen::onBackClicked() { stackedWidget->setCurrentIndex(0); }
 void StartScreen::onHostClicked() { stackedWidget->setCurrentIndex(1); }
 void StartScreen::onJoinClicked() { stackedWidget->setCurrentIndex(2); }
-void StartScreen::onStartGameClicked() { qDebug() << "Start as host"; }
+void StartScreen::onStartGameClicked(QString port) {
+  qDebug() << "Start as host";
+  if (port.isEmpty()) {
+    port = "12345";
+  }
+  server = new Server(port.toUShort());
+  if (server->init()) {
+    server->run(true);
+    onConnectClicked("127.0.0.1", port);
+  }
+}
 
 void StartScreen::onConnectClicked(QString ip, QString port) {
-    closeClient();
+    if (client) {
+        client->disconnect();
+        delete client;
+    }
     client = new Client();
+    connect(client, &Client::connectedSuccessfully, this, &StartScreen::onConnected);
+    connect(client, &Client::playerListUpdated, lobbyScreen, &LobbyScreen::updatePlayerList);
+    connect(client, &Client::disconnectedFromServer, this, &StartScreen::onDisconnected);
     client->connect(port.toInt(), ip.toStdString().c_str());
 }
 
-void StartScreen::closeClient() {
+void StartScreen::onConnected() {
     if (client) {
+        client->requestPlayerList();
+    }
+    stackedWidget->setCurrentWidget(lobbyScreen);
+}
+
+void StartScreen::onDisconnected() {
+    stackedWidget->setCurrentIndex(0);
+    if (client) {
+        client->deleteLater();
+        client = nullptr;
+    }
+}
+
+void StartScreen::cleanupServerClient() {
+    if (client) {
+        client->disconnect();
         delete client;
+        client = nullptr;
+    }
+    if (server) {
+        server->stop();
+        delete server;
+        server = nullptr;
     }
 }
 
@@ -34,8 +108,11 @@ void StartScreen::setupUI() {
   stackedWidget->addWidget(createMainMenu());
   stackedWidget->addWidget(createHostScreen());
   stackedWidget->addWidget(createJoinScreen());
+  stackedWidget->addWidget(lobbyScreen = new LobbyScreen());
 
   mainLayout->addWidget(stackedWidget);
+
+  connect(lobbyScreen, &LobbyScreen::leaveLobbyRequested, this, &StartScreen::onLobbyLeave);
 
   QFile file("src/style.qss");
   assert(file.open(QFile::ReadOnly | QFile::Text));
@@ -68,7 +145,7 @@ QWidget* StartScreen::createMainMenu() {
 
   connect(hostBtn, &QPushButton::clicked, this, &StartScreen::onHostClicked);
   connect(joinBtn, &QPushButton::clicked, this, &StartScreen::onJoinClicked);
-  connect(qApp, &QApplication::aboutToQuit, this, &StartScreen::closeClient);
+  connect(qApp, &QApplication::aboutToQuit, this, &StartScreen::cleanupServerClient);
   connect(exitBtn, &QPushButton::clicked, qApp, &QApplication::quit);
 
   return widget;
@@ -108,8 +185,9 @@ QWidget* StartScreen::createHostScreen() {
   layout->addLayout(buttons);
 
   connect(backBtn, &QPushButton::clicked, this, &StartScreen::onBackClicked);
-  connect(startBtn, &QPushButton::clicked, this,
-          &StartScreen::onStartGameClicked);
+  connect(startBtn, &QPushButton::clicked, this, [this, portInput]() {
+    onStartGameClicked(portInput->text());
+  });
 
   return widget;
 }
@@ -144,12 +222,7 @@ QWidget* StartScreen::createJoinScreen() {
 
   connect(backBtn, &QPushButton::clicked, this, &StartScreen::onBackClicked);
   connect(connectBtn, &QPushButton::clicked, this, [this, serverInput, portInput]() {
-      // This code runs when the button is clicked
-      QString ip = serverInput->text();
-      QString port = portInput->text();
-
-      // Call your actual function with the values
-      onConnectClicked(ip, port);
+      onConnectClicked(serverInput->text(), portInput->text());
   });
 
   return widget;

@@ -72,3 +72,9 @@ QLineEdit, QComboBox {
 QLineEdit:focus, QComboBox:focus {
   border-color: #888888;
 }
+
+#hostStatus {
+    font-weight: bold;
+    color: #2E8B57;
+    padding: 5px;
+}
