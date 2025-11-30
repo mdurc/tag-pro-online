@@ -24,7 +24,7 @@ void Server::stop() {
     isRunning = false;
     if (serverSocket != INVALID_SOCKET) {
       closeSocket(serverSocket);
-      serverSocket = -1;
+      serverSocket = INVALID_SOCKET;
     }
 
     {
@@ -32,8 +32,9 @@ void Server::stop() {
         for (auto& client : clientThreads) {
             if (client->socket != INVALID_SOCKET) {
                 closeSocket(client->socket);
-                client->socket = -1;
+                client->socket = INVALID_SOCKET;
             }
+            client->finished = true;
         }
     }
 
@@ -47,27 +48,9 @@ void Server::stop() {
 
 void Server::listenForClients() {
     while (isRunning) {
-
+        cleanupFinishedClients();
         {
             std::lock_guard<std::mutex> lock(clientsMutex);
-            // Garbage Collector-esque
-            auto it = clientThreads.begin();
-            bool removedClient = false;
-            while (it != clientThreads.end()) {
-                if ((*it)->finished) {
-                    LOG("[Server] Cleaning up finished client thread for player %d",(*it)->playerId);
-                    // 1. Join the thread to ensure proper cleanup
-                    if ((*it)->thread.joinable()) {
-                        (*it)->thread.join();
-                    }
-                    // 2. Remove from vector (this reduces the size!)
-                    it = clientThreads.erase(it);
-                    removedClient = true;
-                } else {
-                    ++it;
-                }
-            }
-            if (removedClient) broadcastPlayerList();
             if (clientThreads.size() >= 8) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(200));
                 continue;
@@ -94,7 +77,7 @@ void Server::listenForClients() {
         }
 
         uint32_t newPlayerId = nextPlayerId++;
-        LOG("[Server] New client connected, playerId: %d, socket: %d", newPlayerId, clientSocket);
+        LOG("[Server] New client connected, playerId: %d", newPlayerId);
 
         auto newClient = std::make_unique<ClientInfo>(clientSocket, newPlayerId);
 
@@ -102,26 +85,54 @@ void Server::listenForClients() {
         // We use a raw pointer here because the unique_ptr in the vector owns the memory
         std::atomic<bool>* finishedFlag = &newClient->finished;
 
-        // Start the thread
-        newClient->thread = std::thread(&Server::handleClient, this, clientSocket, newPlayerId, finishedFlag);
-
         {
             std::lock_guard<std::mutex> lock(clientsMutex);
+            newClient->thread = std::thread(&Server::handleClient, this, clientSocket, newPlayerId, finishedFlag);
             clientThreads.push_back(std::move(newClient));
         }
+
 
         broadcastPlayerList();
     }
 }
 
 void Server::cleanupClientThreads() {
-    std::lock_guard<std::mutex> lock(clientsMutex);
-    LOG("[Server] Cleaning up %zu client threads", clientThreads.size());
-    for (auto& client : clientThreads) {
-        client->finished = true;
-        client->join();
+    std::vector<std::thread> threadsToJoin;
+    {
+        std::lock_guard<std::mutex> lock(clientsMutex);
+        LOG("[Server] Cleaning up %zu client threads", clientThreads.size());
+        for (auto& client : clientThreads) {
+            client->finished = true;
+            if (client->thread.joinable()) {
+                threadsToJoin.push_back(std::move(client->thread));
+            }
+        }
+
+        clientThreads.clear();
     }
-    clientThreads.clear();
+    for (auto& t : threadsToJoin) {
+        LOG("[Server] Joining a client thread...");
+        t.join();
+    }
+}
+
+void Server::cleanupFinishedClients() {
+    std::lock_guard<std::mutex> lock(clientsMutex);
+
+    auto it = clientThreads.begin();
+    while (it != clientThreads.end()) {
+        if ((*it)->finished) {
+            LOG("[Server] Cleaning up finished client thread for player %d", (*it)->playerId);
+
+            if ((*it)->thread.joinable()) {
+                (*it)->thread.join();
+            }
+
+            it = clientThreads.erase(it);
+        } else {
+            ++it;
+        }
+    }
 }
 
 void Server::handleClient(SOCKET clientSocket, uint32_t playerId, std::atomic<bool>* finishedFlag) {
@@ -129,13 +140,14 @@ void Server::handleClient(SOCKET clientSocket, uint32_t playerId, std::atomic<bo
 
     char buffer[1024];
     // Loop to keep receiving data until the client disconnects
-    while (true) {
+    while (!finishedFlag->load() && isRunning) {
         memset(buffer, 0, sizeof(buffer)); // Clear buffer
 
-        int bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0);
+        int bytesReceived = recv(clientSocket, buffer, sizeof(buffer)-1, 0);
 
-        if (bytesReceived <= 0) break;
+        if (bytesReceived <= 0) break; // client disconnected
 
+        buffer[bytesReceived] = '\0';
         LOG("[Server] Received from player %d: %s", playerId, buffer);
 
         if (strcmp(buffer, "REQUEST_PLAYER_LIST") == 0) {
@@ -143,26 +155,34 @@ void Server::handleClient(SOCKET clientSocket, uint32_t playerId, std::atomic<bo
         }
     }
 
-    LOG("[Server] client (playerId: %d) disconnected", playerId);
+    LOG("[Server] Client handler exiting for player %d", playerId);
     closeSocket(clientSocket);
     *finishedFlag = true;
+    broadcastPlayerList();
 }
 
 void Server::broadcastPlayerList(SOCKET client) {
     std::lock_guard<std::mutex> lock(clientsMutex);
     std::string message = "PLAYER_LIST:";
     for (int i = 0; i <  clientThreads.size(); ++i) {
-      message += "Player " + std::to_string(clientThreads[i]->playerId)
-                            + (i != clientThreads.size()-1 ? "," : "");
+        if (!clientThreads[i]->finished) {
+            message += "Player " + std::to_string(clientThreads[i]->playerId);
+            if (i != clientThreads.size() - 1) {
+                message += ",";
+            }
+        }
     }
     std::string framedMessage = std::to_string(message.length()) + ":" + message;
-    if (client == -1) notifyAll(framedMessage.c_str());
-    else notifyAllOthers(framedMessage.c_str(), client);
+    if (client == INVALID_SOCKET) {
+        notifyAll(framedMessage.c_str());
+    } else {
+        notifyAllOthers(framedMessage.c_str(), client);
+    }
 }
 
 void Server::notifyAll(const char* msg) {
     for (auto& client : this->clientThreads) {
-        if (client->socket != INVALID_SOCKET) {
+        if (!client->finished && client->socket != INVALID_SOCKET) {
             sendMessage(msg, client->socket);
         }
     }
@@ -170,27 +190,29 @@ void Server::notifyAll(const char* msg) {
 
 void Server::notifyAllOthers(const char* msg, SOCKET client) {
     for (auto& other : this->clientThreads) {
-        if (other->socket == client || other->socket == INVALID_SOCKET) {
+        if (other->finished || other->socket == INVALID_SOCKET || other->socket == client) {
             continue;
         }
         sendMessage(msg, other->socket);
     }
 }
 
-void Server::sendMessage(const char* msg, SOCKET client) {
+bool Server::sendMessage(const char* msg, SOCKET client) {
     int totalSent = 0;
     int msgLength = strlen(msg);
-    while (totalSent < msgLength) {
+    while (totalSent < msgLength && isRunning) {
         int bytesSent = send(client, msg + totalSent, msgLength - totalSent, 0);
         if (bytesSent <= 0) {
             LOG("[Server] Failed to send message to socket %d", client);
-            break;
+            return false;
         }
         totalSent += bytesSent;
     }
     if (totalSent == msgLength) {
         LOG("[Server] Successfully sent %d bytes to socket %d", totalSent, client);
+        return true;
     }
+    return false;
 }
 
 bool Server::init() {

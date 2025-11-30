@@ -15,7 +15,7 @@ void Client::createSocket() {
         return;
     }
 
-    this->clientSocket = socket(AF_INET, SOCK_STREAM, 0);
+    clientSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (clientSocket == INVALID_SOCKET) {
         LOG("[Client] Error creating socket.");
         cleanupSockets();
@@ -61,7 +61,7 @@ void Client::disconnect() {
     isRunning = false;
     if (clientSocket != INVALID_SOCKET) {
         closeSocket(clientSocket);
-        clientSocket = -1;
+        clientSocket = INVALID_SOCKET;
     }
 
     if (receivingThread.joinable()) {
@@ -69,19 +69,20 @@ void Client::disconnect() {
     }
 
     cleanupSockets();
-    emit disconnectedFromServer();
+    // disconnectedFromServer is emitted via constructor/by caller
+    // avoids infinite loop when startscreen calls client->disconnect
 }
 
 void Client::receiveLoop() {
     char buffer[1024];
     while (isRunning) {
+        memset(buffer, 0, sizeof(buffer));
         int bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
 
         if (bytesReceived > 0) {
             buffer[bytesReceived] = '\0';
             receiveBuffer += buffer;
-
-            LOG("[Client] Received: %s", buffer);
+            LOG("[Client] Received %d bytes, buffer size: %zu", bytesReceived, receiveBuffer.size());
 
             std::string completeMessage;
             while (receiveMessage(completeMessage)) {
@@ -99,6 +100,7 @@ void Client::receiveLoop() {
             break;
         }
     }
+    LOG("[Client] Receive loop finished.");
 }
 
 void Client::requestPlayerList() {
@@ -106,23 +108,28 @@ void Client::requestPlayerList() {
 }
 
 void Client::sendMessage(const char * msg) {
-    if (isRunning && clientSocket != INVALID_SOCKET) {
-        std::string framedMsg = std::to_string(strlen(msg)) + ":" + msg;
-        int totalSent = 0;
-        int msgLength = framedMsg.length();
+    if (!isRunning || clientSocket == INVALID_SOCKET) {
+        LOG("[Client] Cannot send message - not connected");
+        return;
+    }
 
-        while (totalSent < msgLength) {
-            int bytesSent = send(clientSocket, framedMsg.c_str() + totalSent, msgLength - totalSent, 0);
-            if (bytesSent <= 0) {
-                LOG("[Client] Failed to send message: %s", msg);
-                break;
-            }
-            totalSent += bytesSent;
-        }
+    std::string framedMsg = std::to_string(strlen(msg)) + ":" + msg;
+    int totalSent = 0;
+    int msgLength = framedMsg.length();
 
-        if (totalSent == msgLength) {
-            LOG("[Client] Successfully sent %d bytes: %s", totalSent, msg);
+    while (totalSent < msgLength && isRunning) {
+        int bytesSent = send(clientSocket, framedMsg.c_str() + totalSent, msgLength - totalSent, 0);
+        if (bytesSent <= 0) {
+            LOG("[Client] Failed to send message: %s", msg);
+            isRunning = false;
+            emit disconnectedFromServer();
+            break;
         }
+        totalSent += bytesSent;
+    }
+
+    if (totalSent == msgLength) {
+        LOG("[Client] Successfully sent %d bytes: %s", totalSent, msg);
     }
 }
 
@@ -142,7 +149,6 @@ bool Client::receiveMessage(std::string& message) {
         if (receiveBuffer.length() >= totalMessageLength) {
             message = receiveBuffer.substr(colonPos + 1, messageLength);
             receiveBuffer.erase(0, totalMessageLength);
-            LOG("[Client] Extracted framed message, length: %d remaining buffer: %zu", messageLength, receiveBuffer.size());
             return true;
         }
     } catch (const std::exception& e) {

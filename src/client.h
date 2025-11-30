@@ -41,7 +41,7 @@ private:
     void sendMessage(const char* msg);
     bool receiveMessage(std::string& message);
 
-    SOCKET clientSocket;
+    SOCKET clientSocket = INVALID_SOCKET;
     std::thread receivingThread;
     std::atomic<bool> isRunning{false};
     std::string receiveBuffer;

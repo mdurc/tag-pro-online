@@ -13,6 +13,7 @@ class LobbyScreen : public QWidget {
  public:
   LobbyScreen(QWidget* parent = nullptr);
   void updatePlayerList(const QStringList& players);
+  void clearPlayerList();
 
  signals:
   void leaveLobbyRequested();
@@ -41,10 +42,14 @@ private slots:
   void onConnectClicked(QString ip, QString port);
   void onConnected();
   void onDisconnected();
+
   void cleanupServerClient();
+  void cleanupClient();
+  void cleanupServer();
 
 private:
   void setupUI();
+  void returnToMainMenu();
   QWidget* createMainMenu();
   QWidget* createHostScreen();
   QWidget* createJoinScreen();

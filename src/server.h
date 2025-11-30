@@ -37,19 +37,20 @@ public:
 private:
     void listenForClients();
     void cleanupClientThreads();
+    void cleanupFinishedClients();
 
     void handleClient(SOCKET clientSocket, uint32_t playerId, std::atomic<bool>* finished_flag);
 
     void broadcastPlayerList(SOCKET client = -1);
     void notifyAll(const char* msg);
     void notifyAllOthers(const char* msg, SOCKET client);
-    void sendMessage(const char* msg, SOCKET client);
+    bool sendMessage(const char* msg, SOCKET client);
 
     uint32_t nextPlayerId = 1;
 
     // Network Variables
     unsigned int port;
-    SOCKET serverSocket = -1;
+    SOCKET serverSocket = INVALID_SOCKET;
     std::thread lobbyThread;
     std::atomic<bool> isRunning{false}; // Flag to stop thread safely
 
