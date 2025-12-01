@@ -82,16 +82,23 @@ void Client::receiveLoop() {
         if (bytesReceived > 0) {
             buffer[bytesReceived] = '\0';
             receiveBuffer += buffer;
-            LOG("[Client] Received %d bytes, buffer size: %zu", bytesReceived, receiveBuffer.size());
+            // LOG("[Client] Received %d bytes, buffer size: %zu", bytesReceived, receiveBuffer.size());
 
             std::string completeMessage;
             while (receiveMessage(completeMessage)) {
-                LOG("[Client] Processing message: %s", completeMessage.c_str());
+                // LOG("[Client] Processing message: %s", completeMessage.c_str());
                 if (completeMessage.find("PLAYER_LIST:") == 0) {
                     QString playerListStr = QString::fromStdString(completeMessage.substr(12));
                     QStringList newPlayers = playerListStr.split(',', Qt::SkipEmptyParts);
                     emit playerListUpdated(newPlayers);
                 }
+                else if (completeMessage.find("GAME_STATE:") == 0) {
+                    emit gameMessageReceived(QString::fromStdString(completeMessage));
+                }
+                // else if (completeMessage.find("PLAYER_ID:") == 0) {
+                //     uint32_t playerId = std::stoi(completeMessage.substr(10));
+                //     // TODO is this needed?
+                // }
             }
         } else {
             LOG("[Client] Server disconnected");
@@ -129,7 +136,7 @@ void Client::sendMessage(const char * msg) {
     }
 
     if (totalSent == msgLength) {
-        LOG("[Client] Successfully sent %d bytes: %s", totalSent, msg);
+        // LOG("[Client] Successfully sent %d bytes: %s", totalSent, msg);
     }
 }
 

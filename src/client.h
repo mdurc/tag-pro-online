@@ -10,7 +10,6 @@
 #include <mutex>
 
 #include "network.h"
-#include "player.h"
 
 extern std::mutex consoleMutex;
 
@@ -24,21 +23,17 @@ public:
     void connect(int port, const char* ip);
     void disconnect();
     void requestPlayerList();
-
-    // void requestStartGame();
-    // void requestStopGame();
-    // void requestLeaveGame();
-    // void requestKickPlayer();
+    void sendMessage(const char* msg);
 
 signals:
     void connectedSuccessfully();
     void disconnectedFromServer();
     void playerListUpdated(const QStringList& players);
+    void gameMessageReceived(const QString& message);
 
 private:
     void createSocket();
     void receiveLoop();
-    void sendMessage(const char* msg);
     bool receiveMessage(std::string& message);
 
     SOCKET clientSocket = INVALID_SOCKET;

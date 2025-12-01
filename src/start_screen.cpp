@@ -17,13 +17,19 @@ LobbyScreen::LobbyScreen(QWidget* parent) : QWidget(parent) {
 
     playerList = new QListWidget();
     leaveButton = new QPushButton("Leave Lobby");
+    startGameBtn = new QPushButton("Start Game (Test)");
 
     layout->addWidget(title);
     layout->addWidget(playerList);
     layout->addWidget(leaveButton);
+    layout->addWidget(startGameBtn);
 
     connect(leaveButton, &QPushButton::clicked, this, [this]() {
         emit leaveLobbyRequested();
+    });
+
+    connect(startGameBtn, &QPushButton::clicked, this, [this]() {
+        emit startGameRequested();
     });
 }
 
@@ -39,12 +45,23 @@ void LobbyScreen::clearPlayerList() {
 }
 
 // Start screen implementation:
-StartScreen::StartScreen(QWidget* parent) : QWidget(parent) { setupUI(); }
+StartScreen::StartScreen(QWidget* parent) : QWidget(parent) {
+  setupUI();
+}
 StartScreen::~StartScreen() { cleanupServerClient(); }
 
 void StartScreen::returnToMainMenu() {
     if (lobbyScreen) lobbyScreen->clearPlayerList();
     stackedWidget->setCurrentIndex(0);
+}
+
+void StartScreen::transitionToGame() {
+    if (client) {
+        gameScreen = new GameScreen(client, 0, this);
+        // replace the existing game screen in stacked widget
+        stackedWidget->addWidget(gameScreen);
+        stackedWidget->setCurrentWidget(gameScreen);
+    }
 }
 
 void StartScreen::closeEvent(QCloseEvent *event) {
@@ -130,6 +147,7 @@ void StartScreen::setupUI() {
     mainLayout->addWidget(stackedWidget);
 
     connect(lobbyScreen, &LobbyScreen::leaveLobbyRequested, this, &StartScreen::onLobbyLeave);
+    connect(lobbyScreen, &LobbyScreen::startGameRequested, this, &StartScreen::transitionToGame);
 
     QFile file("src/style.qss");
     assert(file.open(QFile::ReadOnly | QFile::Text));

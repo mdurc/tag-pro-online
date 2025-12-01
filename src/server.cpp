@@ -5,6 +5,7 @@
 #include "network.h"
 
 Server::Server(unsigned int port) : port(port) {
+  game = std::make_unique<Game>(1);
   LOG("[Server] instance created on port %d", port);
 }
 
@@ -12,6 +13,8 @@ Server::~Server() { stop(); }
 
 void Server::run(bool inBackground) {
     isRunning = true;
+    gameRunning = true;
+    gameThread = std::thread(&Server::runGameLoop, this);
     if (inBackground) {
         lobbyThread = std::thread(&Server::listenForClients, this);
     } else {
@@ -19,9 +22,54 @@ void Server::run(bool inBackground) {
     }
 }
 
+void Server::runGameLoop() {
+    const int UPDATE_INTERVAL_MS = 1000 / 60; // 60 FPS
+    auto previousTime = std::chrono::steady_clock::now();
+
+    while (gameRunning) {
+        auto currentTime = std::chrono::steady_clock::now();
+        auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - previousTime).count();
+
+        if (elapsedTime >= UPDATE_INTERVAL_MS) {
+            {
+                std::lock_guard<std::mutex> lock(clientsMutex);
+                game->update(static_cast<uint32_t>(elapsedTime));
+            }
+            broadcastGameState();
+            previousTime = currentTime;
+        } else {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+    }
+}
+
+void Server::broadcastGameState() {
+    GameState state;
+    {
+        std::lock_guard<std::mutex> lock(clientsMutex);
+        state = game->getGameState();
+    }
+    std::string message = "GAME_STATE:";
+    for (const auto& playerPair : state.players) {
+        const PlayerState& player = playerPair;
+        message += std::to_string(player.playerId) + "," +
+                   std::to_string(static_cast<int>(player.position.x())) + "," +
+                   std::to_string(static_cast<int>(player.position.y())) + "," +
+                   std::to_string(player.team) + "|";
+    }
+    if (!state.players.empty()) {
+        message.pop_back(); // remove last '|'
+    }
+    std::string framedMessage = std::to_string(message.length()) + ":" + message;
+    std::lock_guard<std::mutex> lock(clientsMutex);
+    notifyAll(framedMessage.c_str());
+}
+
 void Server::stop() {
     LOG("[Server] Destructor called, stopping server");
     isRunning = false;
+    gameRunning = false;
+
     if (serverSocket != INVALID_SOCKET) {
       closeSocket(serverSocket);
       serverSocket = INVALID_SOCKET;
@@ -36,6 +84,10 @@ void Server::stop() {
             }
             client->finished = true;
         }
+    }
+
+    if (gameThread.joinable()) {
+      gameThread.join();
     }
 
     if (lobbyThread.joinable()) {
@@ -136,6 +188,16 @@ void Server::cleanupFinishedClients() {
 }
 
 void Server::handleClient(SOCKET clientSocket, uint32_t playerId, std::atomic<bool>* finishedFlag) {
+    {
+        std::lock_guard<std::mutex> lock(clientsMutex);
+        std::string name = "Player" + std::to_string(playerId);
+        game->addPlayer(QString::fromStdString(name), playerId % 2);
+    }
+
+    // std::string playerIdMsg = "PLAYER_ID:" + std::to_string(playerId);
+    // std::string framedIdMsg = std::to_string(playerIdMsg.length()) + ":" + playerIdMsg;
+    // sendMessage(framedIdMsg.c_str(), clientSocket);
+
     broadcastPlayerList(clientSocket);
 
     char buffer[1024];
@@ -148,11 +210,28 @@ void Server::handleClient(SOCKET clientSocket, uint32_t playerId, std::atomic<bo
         if (bytesReceived <= 0) break; // client disconnected
 
         buffer[bytesReceived] = '\0';
-        LOG("[Server] Received from player %d: %s", playerId, buffer);
 
-        if (strcmp(buffer, "REQUEST_PLAYER_LIST") == 0) {
+        // LOG("[Server] Received from player %d: %s", playerId, buffer);
+
+        if (strstr(buffer, "REQUEST_PLAYER_LIST")) {
             broadcastPlayerList(clientSocket); // send to that client
         }
+        else if (strstr(buffer, "PLAYER_INPUT:")) {
+            // format: "##:PLAYER_INPUT:x,y"
+            char* data = buffer;
+            while (isdigit(*data)) data++;
+            if (*data == ':') data++;
+            float x, y;
+            if (sscanf(data, "PLAYER_INPUT:%f,%f", &x, &y) == 2) {
+                // LOG("[Server] Received input from player %d: (%f, %f)", playerId, x, y);
+                game->updatePlayerInput(playerId, QVector2D(x, y));
+            }
+        }
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(clientsMutex);
+        game->removePlayer(playerId);
     }
 
     LOG("[Server] Client handler exiting for player %d", playerId);
@@ -209,7 +288,7 @@ bool Server::sendMessage(const char* msg, SOCKET client) {
         totalSent += bytesSent;
     }
     if (totalSent == msgLength) {
-        LOG("[Server] Successfully sent %d bytes to socket %d", totalSent, client);
+        // LOG("[Server] Successfully sent %d bytes to socket %d", totalSent, client);
         return true;
     }
     return false;

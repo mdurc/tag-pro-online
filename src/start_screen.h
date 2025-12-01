@@ -6,6 +6,7 @@
 #include <QLabel>
 #include <QWidget>
 #include "client.h"
+#include "game_screen.h"
 #include "server.h"
 
 class LobbyScreen : public QWidget {
@@ -17,10 +18,12 @@ class LobbyScreen : public QWidget {
 
  signals:
   void leaveLobbyRequested();
+  void startGameRequested();
 
  private:
   QListWidget* playerList;
   QPushButton* leaveButton;
+  QPushButton* startGameBtn;
 };
 
 class StartScreen : public QWidget {
@@ -50,6 +53,7 @@ private slots:
 private:
   void setupUI();
   void returnToMainMenu();
+  void transitionToGame();
   QWidget* createMainMenu();
   QWidget* createHostScreen();
   QWidget* createJoinScreen();
@@ -57,7 +61,8 @@ private:
   QStackedWidget* stackedWidget;
   Server* server = nullptr;
   Client* client = nullptr;
-  LobbyScreen* lobbyScreen;
+  LobbyScreen* lobbyScreen = nullptr;
+  GameScreen* gameScreen = nullptr;
 };
 
 #endif

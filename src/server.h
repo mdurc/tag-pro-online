@@ -42,6 +42,7 @@ private:
     void handleClient(SOCKET clientSocket, uint32_t playerId, std::atomic<bool>* finished_flag);
 
     void broadcastPlayerList(SOCKET client = -1);
+    void broadcastGameState();
     void notifyAll(const char* msg);
     void notifyAllOthers(const char* msg, SOCKET client);
     bool sendMessage(const char* msg, SOCKET client);
@@ -56,6 +57,11 @@ private:
 
     std::mutex clientsMutex;
     std::vector<std::unique_ptr<ClientInfo>> clientThreads;
+
+    std::unique_ptr<Game> game;
+    std::thread gameThread;
+    std::atomic<bool> gameRunning{false};
+    void runGameLoop();
 };
 
 #endif // SERVER_H

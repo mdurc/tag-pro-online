@@ -1,29 +1,17 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
-#include <QGraphicsEllipseItem>
 #include <QVector2D>
-#include <QDebug>
-#include <QKeyEvent>
+#include <QSet>
 
-class Player
-{
+class Player {
 public:
-    Player();
-
-    const QVector2D& getPosition() { return m_position; }
-    void setPosition(QVector2D& position) { m_position = position; }
-    void update(unsigned int dt);
-
-    void keyPressed(int keyCode);
-    void keyReleased(int keyCode);
+    // input handling
+    void keyPressed(int key);
+    void keyReleased(int key);
+    QVector2D getInputVector() const;
 private:
-    float m_damping = 0.98;
-
-    QSet<int> m_keysPressed;
-    QVector2D m_position;
-    QVector2D m_velocity;
-    QVector2D m_acceleration;
+    QSet<int> keysPressed;
 };
 
 #endif // PLAYER_H
