@@ -58,9 +58,11 @@ private:
     bool gameRunning;
     const uint32_t updatesPerSecond = 60;
 
+    const float playerRadius = 15.0f;
     const float playerAcceleration = 0.5f;
     const float playerMaxSpeed = 3.0f;
     const float playerFriction = 0.99f;
+    const float playerRestitution = 0.2f;
     const QVector2D arenaSize = QVector2D(800, 600);
 };
 

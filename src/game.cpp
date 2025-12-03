@@ -5,8 +5,6 @@
 #define GAME_LOG(fmt, ...) \
   { qInfo().noquote() << "[GAME] " << QString().asprintf(fmt, ##__VA_ARGS__); }
 
-const float playerRadius = 15.0f;
-
 Game::Game(uint32_t lobbyId, QObject* parent)
     : QObject(parent), gameRunning(false) {
   currentState.lobbyId = lobbyId;
@@ -153,10 +151,25 @@ void Game::resolveCollisions() {
 
       if (distance < minDistance && distance > 0) {
         QVector2D collisionNormal = diff.normalized();
+        // Shift position to no longer be colliding;
         float overlap = minDistance - distance;
+        QVector2D separation = collisionNormal * (overlap * 0.5f);
 
-        player1->position += collisionNormal * overlap * 0.5f;
-        player2->position -= collisionNormal * overlap * 0.5f;
+        player1->position += separation;
+        player2->position -= separation;
+
+        // Update velocity
+        QVector2D relativeVelocity = player1->velocity - player2->velocity;
+        float velocityAlongNormal = QVector2D::dotProduct(relativeVelocity, collisionNormal);
+
+        if (velocityAlongNormal > 0) continue;
+
+        float j = -(1.0f + playerRestitution) * velocityAlongNormal;
+        j /= 2.0f;
+
+        QVector2D impulseVector = collisionNormal * j;
+        player1->velocity += impulseVector;
+        player2->velocity -= impulseVector;
       }
     }
   }
