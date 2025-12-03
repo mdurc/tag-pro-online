@@ -4,3 +4,4 @@
 build/
 notes/
 .qtcreator/*
+.gdb_history

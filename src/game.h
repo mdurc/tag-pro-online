@@ -60,7 +60,7 @@ private:
 
     const float playerAcceleration = 0.5f;
     const float playerMaxSpeed = 3.0f;
-    const float playerFriction = 0.85f;
+    const float playerFriction = 0.99f;
     const QVector2D arenaSize = QVector2D(800, 600);
 };
 

@@ -21,6 +21,8 @@ inline bool initSockets() {
 inline void cleanupSockets() { WSACleanup(); }
 #else // _WIN32
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <sys/select.h>
 #include <arpa/inet.h>
 #include <unistd.h>
 

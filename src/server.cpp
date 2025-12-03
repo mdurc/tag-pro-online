@@ -9,7 +9,7 @@ Server::Server(unsigned int port) : port(port) {
   LOG("[Server] instance created on port %d", port);
 }
 
-Server::~Server() { stop(); }
+Server::~Server() { LOG("[Server] Destructor called, stopping server"); stop(); }
 
 void Server::run(bool inBackground) {
     isRunning = true;
@@ -41,6 +41,7 @@ void Server::runGameLoop() {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }
+    LOG("[Server] Game Loop ended");
 }
 
 void Server::broadcastGameState() {
@@ -66,7 +67,6 @@ void Server::broadcastGameState() {
 }
 
 void Server::stop() {
-    LOG("[Server] Destructor called, stopping server");
     isRunning = false;
     gameRunning = false;
 
@@ -75,6 +75,7 @@ void Server::stop() {
       serverSocket = INVALID_SOCKET;
     }
 
+    // Signal all clients to stop
     {
         std::lock_guard<std::mutex> lock(clientsMutex);
         for (auto& client : clientThreads) {
@@ -96,6 +97,7 @@ void Server::stop() {
 
     cleanupClientThreads();
     cleanupSockets();
+    LOG("[Server] Server has stopped cleanly.")
 }
 
 void Server::listenForClients() {
@@ -109,6 +111,30 @@ void Server::listenForClients() {
             }
         }
 
+        // Check with select() before accept()
+        fd_set readfds;
+        FD_ZERO(&readfds);
+        FD_SET(serverSocket, &readfds);
+
+        // Set timeout to 1 second
+        struct timeval timeout;
+        timeout.tv_sec = 1;
+        timeout.tv_usec = 0;
+
+        // Check if the socket has data waiting (readable)
+        // first argument is ignored in Windows, but needed for max_fd in Linux
+        int activity = select(serverSocket + 1, &readfds, nullptr, nullptr, &timeout);
+
+        if (activity < 0) {
+            LOG("[Server] Select error");
+            break; // Exit loop on system error
+        }
+
+        if (activity == 0) {
+            // Timeout occurred (1 second passed), loop back to check isRunning
+            continue; 
+        }
+
         // Accept a new connection
         sockaddr_in clientAddr;
 #ifdef _WIN32
@@ -120,10 +146,6 @@ void Server::listenForClients() {
         SOCKET clientSocket = accept(serverSocket, (sockaddr*)&clientAddr, &clientAddrLen);
 
         if (clientSocket == INVALID_SOCKET) {
-            if (!isRunning) {
-                // This is the server shutting down
-                continue;
-            }
             LOG("[Server] Accept failed");
             continue; // Don't exit, just try next connection
         }
@@ -146,6 +168,7 @@ void Server::listenForClients() {
 
         broadcastPlayerList();
     }
+    LOG("[Server] Stopped listening for Clients.");
 }
 
 void Server::cleanupClientThreads() {
@@ -169,20 +192,29 @@ void Server::cleanupClientThreads() {
 }
 
 void Server::cleanupFinishedClients() {
-    std::lock_guard<std::mutex> lock(clientsMutex);
+    std::vector<std::thread> threadsToJoin;
+    {
+        std::lock_guard<std::mutex> lock(clientsMutex);
 
-    auto it = clientThreads.begin();
-    while (it != clientThreads.end()) {
-        if ((*it)->finished) {
-            LOG("[Server] Cleaning up finished client thread for player %d", (*it)->playerId);
+        auto it = clientThreads.begin();
+        while (it != clientThreads.end()) {
+            if ((*it)->finished) {
+                LOG("[Server] Cleaning up finished client thread for player %d", (*it)->playerId);
 
-            if ((*it)->thread.joinable()) {
-                (*it)->thread.join();
+                if ((*it)->thread.joinable()) {
+                    (*it)->thread.join();
+                }
+
+                it = clientThreads.erase(it);
+            } else {
+                ++it;
             }
+        }        
+    }
 
-            it = clientThreads.erase(it);
-        } else {
-            ++it;
+    for (auto& t : threadsToJoin) {
+        if (t.joinable()) {
+            t.join();
         }
     }
 }
@@ -236,6 +268,7 @@ void Server::handleClient(SOCKET clientSocket, uint32_t playerId, std::atomic<bo
 
     LOG("[Server] Client handler exiting for player %d", playerId);
     closeSocket(clientSocket);
+    clientSocket = INVALID_SOCKET;
     *finishedFlag = true;
     broadcastPlayerList();
 }

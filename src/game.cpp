@@ -51,8 +51,9 @@ uint32_t Game::addPlayer(const QString& name, uint8_t team) {
   } else {
     newPlayer.position = QVector2D(arenaSize.x() - 100, arenaSize.y() / 2);
   }
-
   newPlayer.velocity = QVector2D(0, 0);
+  newPlayer.acceleration = QVector2D(0, 0);
+
   currentState.players[playerId] = newPlayer;
 
   GAME_LOG("Player %s (id: %d) added to team %d", name.toLatin1().data(), playerId, team);
@@ -70,7 +71,7 @@ void Game::removePlayer(uint32_t playerId) {
 void Game::updatePlayerInput(uint32_t playerId, const QVector2D& input) {
   PlayerState* player = getPlayerState(playerId);
   if (player && player->connected) {
-    player->velocity = input * playerMaxSpeed;
+    player->acceleration = input * playerMaxSpeed;
   }
 }
 
@@ -104,10 +105,12 @@ void Game::update(uint32_t deltaTime) {
 void Game::applyPhysics(PlayerState& player, uint32_t deltaTime) {
   float deltaTimeSec = static_cast<float>(deltaTime) / 1000.0f;
 
-  player.position += player.velocity * deltaTimeSec * 60.0f;
+  player.velocity += player.acceleration * deltaTimeSec;
   player.velocity *= playerFriction;
 
-  if (player.velocity.length() < 0.1f) {
+  player.position += player.velocity * deltaTimeSec * 60.0f;
+
+  if (player.velocity.length() < 0.1f && player.acceleration.isNull()) {
     player.velocity = QVector2D(0, 0);
   }
 }

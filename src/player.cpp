@@ -13,9 +13,7 @@ QVector2D Player::getInputVector() const {
   if (keysPressed.contains(Qt::Key_Left)) input.setX(-1);
   if (keysPressed.contains(Qt::Key_Right)) input.setX(1);
 
-  if (input.length() > 0) {
-    input.normalize();
-  }
+  input.normalize();
 
   return input;
 }
