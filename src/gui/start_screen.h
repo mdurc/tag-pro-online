@@ -2,12 +2,13 @@
 #define START_SCREEN_H
 
 #include <QListWidget>
+#include <QPushButton>
 #include <QStackedWidget>
 #include <QLabel>
 #include <QWidget>
-#include "client.h"
+#include "../network/client.h"
+#include "../network/server.h"
 #include "game_screen.h"
-#include "server.h"
 
 class LobbyScreen : public QWidget {
   Q_OBJECT
@@ -15,15 +16,16 @@ class LobbyScreen : public QWidget {
   LobbyScreen(QWidget* parent = nullptr);
   void updatePlayerList(const QStringList& players);
   void clearPlayerList();
+  void setHost(bool h);
 
  signals:
   void leaveLobbyRequested();
-  void startGameRequested();
+  void lobbyHostStartGameRequested();
 
  private:
   QListWidget* playerList;
   QPushButton* leaveButton;
-  QPushButton* startGameBtn;
+  QPushButton* startGameBtn = nullptr;
 };
 
 class StartScreen : public QWidget {
@@ -37,23 +39,28 @@ protected:
   void closeEvent(QCloseEvent* event) override;
 
 private slots:
+  // from Lobby:
   void onLobbyLeave();
+  void onLobbyHostStartGame();
+
   void onHostClicked();
   void onJoinClicked();
   void onBackClicked();
-  void onStartGameClicked(QString port);
-  void onConnectClicked(QString ip, QString port);
-  void onConnected();
-  void onDisconnected();
 
+  void onHostCreateLobby(QString port);
+  void onClientJoinGame(QString ip, QString port);
+
+private:
   void cleanupServerClient();
   void cleanupClient();
   void cleanupServer();
 
-private:
+  void onClientMessageReceived(const std::string& message);
+  void onClientConnectionChanged(bool connected);
+  void setupClientCallbacks();
+
   void setupUI();
   void returnToMainMenu();
-  void transitionToGame();
   QWidget* createMainMenu();
   QWidget* createHostScreen();
   QWidget* createJoinScreen();

@@ -6,26 +6,32 @@
 #include <QGraphicsView>
 #include <QKeyEvent>
 #include <QTimer>
-#include "client.h"
-#include "player.h"
-#include "game.h"
+#include "../network/client.h"
+#include "../game/game_state.h"
+
+class InputHandler {
+public:
+    void keyPressed(int key);
+    void keyReleased(int key);
+    QVector2D getInputVector() const;
+private:
+    QSet<int> keysPressed;
+};
 
 class GameScreen : public QWidget
 {
     Q_OBJECT
 public:
-    explicit GameScreen(Client* client, uint32_t localPlayerId, QWidget* parent = nullptr);
+    GameScreen(QWidget* parent = nullptr);
     ~GameScreen();
 
+    void setLocalClient(Client* client) { localClient = client; }
     void applyGameState(const GameState& state);
 
 protected:
     void keyPressEvent(QKeyEvent* event) override;
     void keyReleaseEvent(QKeyEvent* event) override;
-
-private slots:
     void sendPlayerInput();
-    void processGameMessage(const QString& message);
 
 private:
     void setupScene();
@@ -33,14 +39,12 @@ private:
     void removePlayerGraphics(uint32_t playerId);
     QColor getTeamColor(uint8_t team);
 
-    Client* client;
+    Client* localClient;
     QGraphicsScene* scene;
     QGraphicsView* view;
     QTimer* inputTimer;
 
-    Player localPlayer;
-    uint32_t localPlayerId;
-
+    InputHandler inputs;
     QMap<uint32_t, QGraphicsEllipseItem*> playerGraphics;
     QMap<uint32_t, QGraphicsTextItem*> playerNames;
 };

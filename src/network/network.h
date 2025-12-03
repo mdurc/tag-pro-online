@@ -3,7 +3,10 @@
 
 #pragma once
 
-// maybe use qWarning/qDebug/qCritical/qInfo
+#include <QDebug>
+#include <mutex>
+
+extern std::mutex consoleMutex;
 #define LOG(fmt, ...) \
     { std::lock_guard<std::mutex> lock(consoleMutex); \
       qInfo().noquote() << QString().asprintf(fmt, ##__VA_ARGS__); }

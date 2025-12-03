@@ -8,6 +8,7 @@
 #include <QListWidget>
 #include <QPushButton>
 #include <QVBoxLayout>
+#include "../network/protocol.h"
 
 LobbyScreen::LobbyScreen(QWidget* parent) : QWidget(parent) {
     QVBoxLayout* layout = new QVBoxLayout(this);
@@ -17,19 +18,13 @@ LobbyScreen::LobbyScreen(QWidget* parent) : QWidget(parent) {
 
     playerList = new QListWidget();
     leaveButton = new QPushButton("Leave Lobby");
-    startGameBtn = new QPushButton("Start Game (Test)");
 
     layout->addWidget(title);
     layout->addWidget(playerList);
     layout->addWidget(leaveButton);
-    layout->addWidget(startGameBtn);
 
     connect(leaveButton, &QPushButton::clicked, this, [this]() {
         emit leaveLobbyRequested();
-    });
-
-    connect(startGameBtn, &QPushButton::clicked, this, [this]() {
-        emit startGameRequested();
     });
 }
 
@@ -44,76 +39,59 @@ void LobbyScreen::clearPlayerList() {
     playerList->clear();
 }
 
+void LobbyScreen::setHost(bool host) {
+    if (!startGameBtn) {
+        startGameBtn = new QPushButton("Start Game", this);
+        connect(startGameBtn, &QPushButton::clicked, this, [this]() {
+            emit lobbyHostStartGameRequested();
+        });
+        layout()->addWidget(startGameBtn);
+    }
+    startGameBtn->setVisible(host);
+}
+
 // Start screen implementation:
 StartScreen::StartScreen(QWidget* parent) : QWidget(parent) {
   setupUI();
 }
 StartScreen::~StartScreen() { cleanupServerClient(); }
 
-void StartScreen::returnToMainMenu() {
-    if (lobbyScreen) lobbyScreen->clearPlayerList();
-    stackedWidget->setCurrentIndex(0);
-}
-
-void StartScreen::transitionToGame() {
-    if (client) {
-        gameScreen = new GameScreen(client, 0, this);
-        // replace the existing game screen in stacked widget
-        stackedWidget->addWidget(gameScreen);
-        stackedWidget->setCurrentWidget(gameScreen);
-    }
-}
-
 void StartScreen::closeEvent(QCloseEvent *event) {
     cleanupServerClient();
     event->accept();
 }
 void StartScreen::onLobbyLeave() {
+    if (server) {
+      // maybe send a message to clients that the server is closing
+    }
     cleanupServerClient();
     returnToMainMenu();
 }
 void StartScreen::onBackClicked() { returnToMainMenu(); }
 void StartScreen::onHostClicked() { stackedWidget->setCurrentIndex(1); }
 void StartScreen::onJoinClicked() { stackedWidget->setCurrentIndex(2); }
-void StartScreen::onStartGameClicked(QString port) {
+void StartScreen::onHostCreateLobby(QString port) {
     if (port.isEmpty()) {
         port = "12345";
     }
-    LOG("[StartScreen] Starting as host on port %s", port.toStdString().c_str());
-    cleanupServerClient(); // any prior existing server/client
     server = new Server(port.toUShort());
     if (server->init()) {
-        server->run(true);
-        onConnectClicked("127.0.0.1", port);
+        server->start(true);
+
+        // let this host join as a client to their own server
+        onClientJoinGame("127.0.0.1", port);
     } else {
         LOG("[StartScreen] Failed to start server");
         cleanupServer();
     }
 }
 
-void StartScreen::onConnectClicked(QString ip, QString port) {
-    LOG("[StartScreen] Connecting to %s:%s", ip.toStdString().c_str(), port.toStdString().c_str());
-    cleanupClient(); // any prior client
+void StartScreen::onClientJoinGame(QString ip, QString port) {
     client = new Client();
-    connect(client, &Client::connectedSuccessfully, this, &StartScreen::onConnected);
-    connect(client, &Client::playerListUpdated, lobbyScreen, &LobbyScreen::updatePlayerList);
-    connect(client, &Client::disconnectedFromServer, this, &StartScreen::onDisconnected);
     if (ip.isEmpty()) ip = "127.0.0.1";
     if (port.isEmpty()) port = "12345";
+    setupClientCallbacks(); // callbacks before connecting
     client->connect(port.toInt(), ip.toStdString().c_str());
-}
-
-void StartScreen::onConnected() {
-    if (client) {
-        client->requestPlayerList();
-    }
-    stackedWidget->setCurrentWidget(lobbyScreen);
-}
-
-void StartScreen::onDisconnected() {
-    returnToMainMenu();
-    // clean up client but NOT server
-    cleanupClient();
 }
 
 void StartScreen::cleanupServerClient() {
@@ -122,16 +100,81 @@ void StartScreen::cleanupServerClient() {
 }
 void StartScreen::cleanupClient() {
     if (client) {
-        client->disconnect();
+        client->clearCallbacks();
+        gameScreen->setLocalClient(nullptr);
         delete client;
         client = nullptr;
     }
 }
 void StartScreen::cleanupServer() {
     if (server) {
-        server->stop();
         delete server;
         server = nullptr;
+    }
+}
+
+void StartScreen::onClientMessageReceived(const std::string& message) {
+    if (message.empty()) return;
+    uint8_t messageType = static_cast<uint8_t>(message[0]);
+    switch (messageType) {
+        case Protocol::PLAYER_LIST: {
+            std::vector<std::string> players = Protocol::deserializePlayerList(message);
+            QStringList qPlayers;
+            for (const auto& player : players) {
+                qPlayers.append(QString::fromStdString(player));
+            }
+            lobbyScreen->updatePlayerList(qPlayers);
+            break;
+        }
+        case Protocol::GAME_STATE: {
+            // first game state update will transition to the game screen
+            if (client) {
+              if (stackedWidget->currentWidget() != gameScreen) {
+                gameScreen->setLocalClient(client);
+                stackedWidget->setCurrentWidget(gameScreen);
+              } else {
+                // we can change this to update the client callbacks to
+                // game_screen functions but this is simple for now
+                GameState state;
+                Protocol::deserializeGameState(message, state);
+                gameScreen->applyGameState(state);
+
+                // TODO: implement option to leave a game on the gamescreen
+              }
+            }
+            break;
+        }
+        default: {
+            LOG("Unexpected message relayed from client to StartScreen (%d): %s",
+                messageType, message.c_str());
+            break;
+        }
+    }
+}
+
+void StartScreen::onClientConnectionChanged(bool connected) {
+    if (connected) {
+        lobbyScreen->setHost(server != nullptr);
+        stackedWidget->setCurrentWidget(lobbyScreen);
+    } else {
+        LOG("[StartScreen] Returning to main menu after disconnecting");
+        cleanupClient();
+        returnToMainMenu();
+    }
+}
+
+void StartScreen::setupClientCallbacks() {
+    if (client) {
+        client->setMessageCallback([this](const std::string& message) {
+            QMetaObject::invokeMethod(this, [this, message]() {
+                onClientMessageReceived(message);
+            }, Qt::QueuedConnection);
+        });
+        client->setConnectionCallback([this](bool connected) {
+            QMetaObject::invokeMethod(this, [this, connected]() {
+                onClientConnectionChanged(connected);
+            }, Qt::QueuedConnection);
+        });
     }
 }
 
@@ -143,15 +186,30 @@ void StartScreen::setupUI() {
     stackedWidget->addWidget(createHostScreen());
     stackedWidget->addWidget(createJoinScreen());
     stackedWidget->addWidget(lobbyScreen = new LobbyScreen());
+    stackedWidget->addWidget(gameScreen = new GameScreen(this));
 
     mainLayout->addWidget(stackedWidget);
 
     connect(lobbyScreen, &LobbyScreen::leaveLobbyRequested, this, &StartScreen::onLobbyLeave);
-    connect(lobbyScreen, &LobbyScreen::startGameRequested, this, &StartScreen::transitionToGame);
+    connect(lobbyScreen, &LobbyScreen::lobbyHostStartGameRequested, this, &StartScreen::onLobbyHostStartGame);
 
     QFile file("src/style.qss");
     assert(file.open(QFile::ReadOnly | QFile::Text));
     setStyleSheet(file.readAll());
+}
+
+void StartScreen::returnToMainMenu() {
+    if (lobbyScreen) {
+      lobbyScreen->clearPlayerList();
+      lobbyScreen->setHost(false);
+    }
+    stackedWidget->setCurrentIndex(0);
+}
+
+void StartScreen::onLobbyHostStartGame() {
+    if (server) {
+        server->start_game();
+    }
 }
 
 QWidget* StartScreen::createMainMenu() {
@@ -220,7 +278,7 @@ QWidget* StartScreen::createHostScreen() {
 
   connect(backBtn, &QPushButton::clicked, this, &StartScreen::onBackClicked);
   connect(startBtn, &QPushButton::clicked, this, [this, portInput]() {
-    onStartGameClicked(portInput->text());
+    onHostCreateLobby(portInput->text());
   });
 
   return widget;
@@ -256,7 +314,7 @@ QWidget* StartScreen::createJoinScreen() {
 
   connect(backBtn, &QPushButton::clicked, this, &StartScreen::onBackClicked);
   connect(connectBtn, &QPushButton::clicked, this, [this, serverInput, portInput]() {
-      onConnectClicked(serverInput->text(), portInput->text());
+      onClientJoinGame(serverInput->text(), portInput->text());
   });
 
   return widget;
