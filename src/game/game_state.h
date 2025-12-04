@@ -11,11 +11,13 @@ struct PlayerState {
   float x, y;
   float velocityX, velocityY;
   uint8_t team;
+  uint32_t respawnTimer;
   bool connected;
+  bool hasFlag;
 
-  PlayerState() : id(0), x(0), y(0), velocityX(0), velocityY(0), team(0), connected(false) {}
+  PlayerState() : id(0), x(0), y(0), velocityX(0), velocityY(0), team(0), respawnTimer(0), connected(false), hasFlag(false) {}
   PlayerState(uint32_t id, const std::string& name, uint8_t team)
-      : id(id), name(name), x(0), y(0), velocityX(0), velocityY(0), team(team), connected(true) {}
+      : id(id), name(name), x(0), y(0), velocityX(0), velocityY(0), team(team), respawnTimer(0), connected(true), hasFlag(false) {}
 };
 
 struct GameState {
@@ -26,6 +28,7 @@ struct GameState {
     auto it = players.find(playerId);
     return it != players.end() ? &it->second : nullptr;
   }
+  uint32_t redFlag, blueFlag;
 };
 
 #endif // GAME_STATE_H

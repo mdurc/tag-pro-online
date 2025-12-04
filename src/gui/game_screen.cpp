@@ -48,8 +48,8 @@ void GameScreen::setupScene() {
   centerLine->setZValue(-1);
 
   // Add a debug rectangle representing the arena boundaries
-  QGraphicsRectItem* bounds = scene->addRect(0, 0, Game::arenaWidth, Game::arenaHeight, QPen(Qt::red, 2));
-  bounds->setZValue(0); // Draw behind players
+  // QGraphicsRectItem* bounds = scene->addRect(0, 0, Game::arenaWidth, Game::arenaHeight, QPen(Qt::red, 2));
+  // bounds->setZValue(0); // Draw behind players
 }
 
 void GameScreen::applyGameState(const GameState& state) {

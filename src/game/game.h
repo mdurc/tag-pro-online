@@ -32,17 +32,25 @@ public:
     void update(uint32_t deltaTimeMs);
 
     constexpr static float playerRadius = 15.0f;
-    constexpr static float playerAcceleration = 80.0f;
+    constexpr static float playerAcceleration = 60.0f;
     constexpr static float playerMaxSpeed = 1000.0f;
-    constexpr static float playerFriction = 0.985f;
+    constexpr static float playerFriction = 0.98f;
     constexpr static float playerRestitution = 0.2f;
     constexpr static float wallRestitution = 0.15f;
 
     constexpr static float arenaWidth = 800.0f;
     constexpr static float arenaHeight = 600.0f;
+
+    constexpr static float redFlagX = 100.0f;
+    constexpr static float redFlagY = arenaHeight / 2.0f;
+    constexpr static float blueFlagX = arenaWidth - 100.0f;
+    constexpr static float blueFlagY = arenaHeight / 2.0f;
 private:
+    float getTeamSpawnXLocation(uint8_t team);
     void applyPhysics(PlayerState& player, float deltaTimeSec);
     void checkBoundaries(PlayerState& player);
+    void pop(PlayerState& player);
+    bool checkCollision(float x1, float y1, float x2, float y2);
     void resolveCollisions();
     void updatePlayerVelocity(PlayerState& player, float inputX, float inputY, float deltaTimeSec);
 

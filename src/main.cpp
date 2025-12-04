@@ -11,10 +11,10 @@ int main(int argc, char* argv[]) {
 
   QMainWindow window;
   window.setWindowTitle("TagPro - Capture the Flag");
-  window.adjustSize();
   window.setMinimumSize(500, 400);
 
   window.setCentralWidget(new StartScreen());
+  window.adjustSize();
   window.show();
 
   return app.exec();
