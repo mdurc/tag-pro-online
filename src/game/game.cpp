@@ -55,6 +55,11 @@ void Game::pop(PlayerState& player) {
     player.velocityY = 0;
     player.x = getTeamSpawnXLocation(player.team);
     player.y = arenaHeight / 2.0f;
+    if (player.team == REDTEAM) {
+        currentState.blueFlag = 0;
+    } else {
+        currentState.redFlag = 0;
+    }
 }
 
 void Game::queuePlayerInput(uint32_t playerId, float inputX, float inputY) {
@@ -185,8 +190,36 @@ void Game::resolveCollisions() {
     if (!player1) continue;
     if (player1->respawnTimer != 0) continue;
 
-    if (tryFlagGrab(*player1)){
-        // Notify players with audio?
+    if (player1->team == REDTEAM && currentState.blueFlag == 0) {
+        if (checkCollision(player1->x, player1->y, blueFlagX, blueFlagY)) {
+            player1->hasFlag = true;
+            currentState.blueFlag = player1->id;
+            GAME_LOG("%s:%d has picked up the flag!", player1->name.c_str(), player1->id);
+        }
+    } else if (player1->team == BLUETEAM && currentState.redFlag == 0) {
+        if (checkCollision(player1->x, player1->y, redFlagX, redFlagY)) {
+            player1->hasFlag = true;
+            currentState.redFlag = player1->id;
+            GAME_LOG("%s:%d has picked up the red flag!", player1->name.c_str(), player1->id);
+        }
+    }
+
+    if (player1->hasFlag) {
+        if (player1->team == REDTEAM && currentState.redFlag == 0) {
+            if (checkCollision(player1->x, player1->y, redFlagX, redFlagY)) {
+                player1->hasFlag = false;
+                currentState.blueFlag = 0;
+                currentState.redScore++;
+                GAME_LOG("%s:%d has scored for the red team!", player1->name.c_str(), player1->id);
+            }
+        } else if (player1->team == BLUETEAM && currentState.blueFlag == 0) {
+            if (checkCollision(player1->x, player1->y, blueFlagX, blueFlagY)) {
+                player1->hasFlag = false;
+                currentState.redFlag = 0;
+                currentState.blueScore++;
+                GAME_LOG("%s:%d has scored for the blue team!", player1->name.c_str(), player1->id);
+            }
+        }
     }
 
     for (int j = i + 1; j < playerIds.size(); ++j) {
@@ -228,41 +261,20 @@ void Game::resolveCollisions() {
 
         player2->velocityX -= impulseX;
         player2->velocityY -= impulseY;
-      }
-
-      if (player2->hasFlag && player1->team != player2->team) {
-          pop(*player2);
-          GAME_LOG("%s was popped", player2->name.c_str());
-      }
-      if (player1->hasFlag && player1->team != player2->team) {
-          pop(*player1);
-          GAME_LOG("%s was popped", player1->name.c_str());
+        if (player2->hasFlag && player1->team != player2->team) {
+            pop(*player2);
+            GAME_LOG("%s was popped", player2->name.c_str());
+        }
+        if (player1->hasFlag && player1->team != player2->team) {
+            pop(*player1);
+            GAME_LOG("%s was popped", player1->name.c_str());
+        }
       }
     }
   }
 }
 
-bool Game::tryFlagGrab(PlayerState& player) {
-    uint8_t team = player.team;
-
-    if (team == 0 && currentState.blueFlag == 0) {
-        if (checkCollision(player.x, player.y, blueFlagX, blueFlagY)) {
-            player.hasFlag = true;
-            currentState.blueFlag = player.id;
-            return true;
-        }
-    } else {
-        if (checkCollision(player.x, player.y, redFlagX, redFlagY)) {
-            player.hasFlag = true;
-            currentState.redFlag = player.id;
-            return true;
-        }
-    }
-    return false;
-}
-
 bool Game::checkCollision(float x1, float y1, float x2, float y2) {
-
     float dx = x2-x1;
     float dy = y2-y1;
     float distance = std::sqrt(dx * dx + dy * dy);

@@ -5,6 +5,9 @@
 #include <string>
 #include <unordered_map>
 
+#define REDTEAM 0
+#define BLUETEAM 1
+
 struct PlayerState {
   uint32_t id;
   std::string name;
@@ -28,7 +31,8 @@ struct GameState {
     auto it = players.find(playerId);
     return it != players.end() ? &it->second : nullptr;
   }
-  uint32_t redFlag, blueFlag;
+  // Will be player's id when picked up, 0 when not
+  uint32_t redFlag = 0, blueFlag = 0;
 };
 
 #endif // GAME_STATE_H
