@@ -6,7 +6,6 @@
 #include <QGraphicsView>
 #include <QKeyEvent>
 #include <QTimer>
-#include "../game/game.h"
 #include "../network/client.h"
 #include "../game/game_state.h"
 
@@ -36,6 +35,8 @@ protected:
 
 private:
     void setupScene();
+    void setupScoreDisplay();
+    void updateScoreDisplay(uint8_t redScore, uint8_t blueScore);
     void updateRedFlag(uint32_t redFlag);
     void updateBlueFlag(uint32_t blueFlag);
     void updatePlayerGraphics(uint32_t playerId, const PlayerState& state);
@@ -51,6 +52,10 @@ private:
     QMap<uint32_t, QGraphicsEllipseItem*> playerGraphics;
     QMap<uint32_t, QGraphicsTextItem*> playerNames;
     QGraphicsPolygonItem* redFlag = nullptr, *blueFlag = nullptr;
+
+    QGraphicsTextItem* redScoreText = nullptr;
+    QGraphicsTextItem* blueScoreText = nullptr;
+    QGraphicsRectItem* scoreBackground = nullptr;
 };
 
 #endif

@@ -30,8 +30,11 @@ namespace Protocol {
       if (type != GAME_STATE) return false;
 
       char delim;
-      ss >> state.lobbyId >> delim >> state.mapId >> delim >> state.redScore >>
-        delim >> state.blueScore >> delim;
+      int mapTmp, redTmp, blueTmp;
+      ss >> state.lobbyId >> delim >> mapTmp >> delim >> redTmp >> delim >> blueTmp >> delim;
+      state.mapId = static_cast<uint8_t>(mapTmp);
+      state.redScore = static_cast<uint8_t>(redTmp);
+      state.blueScore = static_cast<uint8_t>(blueTmp);
       ss >> state.redFlag >> delim >> state.blueFlag >> delim;
       std::string playerData;
       while (std::getline(ss, playerData, ';') && !playerData.empty()) {

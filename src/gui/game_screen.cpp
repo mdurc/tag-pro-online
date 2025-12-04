@@ -3,6 +3,7 @@
 #include <QDebug>
 #include <QGraphicsTextItem>
 #include <QVBoxLayout>
+#include "../game/game.h"
 
 void InputHandler::keyPressed(int key) { keysPressed.insert(key); }
 void InputHandler::keyReleased(int key) { keysPressed.remove(key); }
@@ -18,6 +19,7 @@ QVector2D InputHandler::getInputVector() const {
 
 GameScreen::GameScreen(QWidget* parent) : QWidget(parent) {
   setupScene();
+  setupScoreDisplay();
 
   inputTimer = new QTimer(this);
   connect(inputTimer, &QTimer::timeout, this, &GameScreen::sendPlayerInput);
@@ -52,7 +54,53 @@ void GameScreen::setupScene() {
   // bounds->setZValue(0); // Draw behind players
 }
 
+void GameScreen::setupScoreDisplay() {
+  scoreBackground = scene->addRect(0, 0, Game::arenaWidth, 40);
+  scoreBackground->setBrush(QBrush(QColor(30, 30, 30, 200)));
+  scoreBackground->setPen(QPen(Qt::transparent));
+  scoreBackground->setZValue(10);
+
+  redScoreText = scene->addText("0");
+  QFont scoreFont("Arial", 24, QFont::Bold);
+  redScoreText->setFont(scoreFont);
+  redScoreText->setDefaultTextColor(QColor(255, 100, 100)); // red
+  redScoreText->setPos(100, 5);
+  redScoreText->setZValue(11);
+
+  blueScoreText = scene->addText("0");
+  blueScoreText->setFont(scoreFont);
+  blueScoreText->setDefaultTextColor(QColor(100, 100, 255)); // blue
+  blueScoreText->setPos(Game::arenaWidth - 120, 5);
+  blueScoreText->setZValue(11);
+
+  QGraphicsTextItem* redLabel = scene->addText("RED");
+  QGraphicsTextItem* blueLabel = scene->addText("BLUE");
+
+  QFont labelFont("Arial", 14);
+  redLabel->setFont(labelFont);
+  blueLabel->setFont(labelFont);
+
+  redLabel->setDefaultTextColor(QColor(255, 100, 100));
+  blueLabel->setDefaultTextColor(QColor(100, 100, 255));
+
+  redLabel->setPos(50, 10);
+  blueLabel->setPos(Game::arenaWidth - 90, 10);
+  redLabel->setZValue(11);
+  blueLabel->setZValue(11);
+}
+
+void GameScreen::updateScoreDisplay(uint8_t redScore, uint8_t blueScore) {
+  if (redScoreText) {
+    redScoreText->setPlainText(QString::number(redScore));
+  }
+  if (blueScoreText) {
+    blueScoreText->setPlainText(QString::number(blueScore));
+  }
+}
+
 void GameScreen::applyGameState(const GameState& state) {
+  updateScoreDisplay(state.redScore, state.blueScore);
+
   for (const auto& [id, playerState] : state.players) {
     updatePlayerGraphics(id, playerState);
   }
