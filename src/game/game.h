@@ -45,7 +45,7 @@ private:
     const float playerRadius = 15.0f;
     const float playerAcceleration = 100.0f;
     const float playerMaxSpeed = 1000.0f;
-    const float playerFriction = 1.0f;
+    const float playerFriction = 0.99f;
     const float playerRestitution = 0.2f;
 
     const float arenaWidth = 800.0f;

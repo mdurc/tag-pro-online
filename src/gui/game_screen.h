@@ -39,10 +39,10 @@ private:
     void removePlayerGraphics(uint32_t playerId);
     QColor getTeamColor(uint8_t team);
 
-    Client* localClient;
-    QGraphicsScene* scene;
-    QGraphicsView* view;
-    QTimer* inputTimer;
+    Client* localClient = nullptr;
+    QGraphicsScene* scene = nullptr;
+    QGraphicsView* view = nullptr;
+    QTimer* inputTimer = nullptr;
 
     InputHandler inputs;
     QMap<uint32_t, QGraphicsEllipseItem*> playerGraphics;

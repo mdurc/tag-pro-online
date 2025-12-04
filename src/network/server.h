@@ -45,6 +45,7 @@ private:
 
     void processClientMessage(const std::string& message);
 
+    void broadcastServerShutdown();
     void broadcastPlayerList();
     void broadcastGameState();
     void assignPlayerId(ClientInfo* client);

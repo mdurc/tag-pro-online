@@ -81,6 +81,7 @@ void Server::start_game() {
 
 void Server::stop() {
     if (!serverRunning) return;
+    broadcastServerShutdown();
 
     serverRunning = false;
     gameRunning = false;
@@ -94,6 +95,7 @@ void Server::stop() {
     }
 
     if (serverSocket != INVALID_SOCKET) {
+      ::shutdownSocket(serverSocket);
       closeSocket(serverSocket);
       serverSocket = INVALID_SOCKET;
     }
@@ -105,6 +107,7 @@ void Server::stop() {
         std::lock_guard<std::mutex> lock(clientsMutex);
         for (auto& client: clientThreads) {
           if (client->socket != INVALID_SOCKET) {
+            ::shutdownSocket(client->socket);
             closeSocket(client->socket);
             client->socket = INVALID_SOCKET;
           }
@@ -293,6 +296,13 @@ void Server::gameLoop() {
         }
     }
     LOG("[Server] Game Loop ended");
+}
+
+void Server::broadcastServerShutdown() {
+    if (!serverRunning) return;
+    std::string message = Protocol::serializeServerShutdown();
+    std::string framed = Protocol::frameMessage(message);
+    notifyAll(framed.c_str());
 }
 
 void Server::broadcastGameState() {

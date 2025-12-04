@@ -108,6 +108,21 @@ namespace Protocol {
       return true;
     }
 
+    std::string serializeServerShutdown() {
+      std::ostringstream ss;
+      ss << static_cast<char>(SERVER_SHUTDOWN);
+      return ss.str();
+    }
+
+    bool deserializeServerShutdown(const std::string& data) {
+      std::istringstream ss(data);
+      char type;
+      ss >> type;
+      if (type != SERVER_SHUTDOWN) return false;
+
+      return true;
+    }
+
     std::string frameMessage(const std::string& data) {
       return std::to_string(data.size()) + ":" + data;
     }

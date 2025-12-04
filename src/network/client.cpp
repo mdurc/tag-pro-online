@@ -65,13 +65,20 @@ void Client::disconnect() {
     isRunning = false;
 
     if (clientSocket != INVALID_SOCKET) {
+        shutdownSocket(clientSocket);
         closeSocket(clientSocket);
         clientSocket = INVALID_SOCKET;
     }
 
+    LOG("[Client] Waiting for receivingThread...");
     if (receivingThread.joinable()) {
-      receivingThread.join();
+        if (std::this_thread::get_id() != receivingThread.get_id()) {
+            receivingThread.join();
+        } else {
+            receivingThread.detach(); 
+        }
     }
+    LOG("[Client] receivingThread has joined.");
 
     cleanupSockets();
     LOG("[Client] Disconnected cleanly.");
@@ -116,11 +123,14 @@ void Client::processIncomingData() {
         // LOG("[Client] Processing message: %s", message.c_str());
 
         uint32_t assignedId;
-        if (Protocol::deserializePlayerJoined(message, assignedId)) {
+        if (Protocol::deserializeServerShutdown(message)) {
+            disconnect();
+            break;
+        } else if (Protocol::deserializePlayerJoined(message, assignedId)) {
             playerId = assignedId;
         } else {
           // relay to GUI callback
-          std::lock_guard<std::mutex> cbLock(callbackMutex);
+          std::lock_guard<std::mutex> lock(callbackMutex);
           if (messageCallback) {
               messageCallback(message);
           }
