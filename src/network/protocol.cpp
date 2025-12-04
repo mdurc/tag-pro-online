@@ -118,7 +118,7 @@ namespace Protocol {
 
     bool deserializeServerShutdown(const std::string& data) {
       std::istringstream ss(data);
-      char type;
+      int type;
       ss >> type;
       if (type != SERVER_SHUTDOWN) return false;
 
@@ -146,12 +146,24 @@ namespace Protocol {
       return false;
     }
 
-    bool sendRaw(const char* msg, SOCKET socket, std::atomic<bool>* running) {
+    std::string serializeMarkClientHost() {
+      std::ostringstream ss;
+      ss << static_cast<char>(MARK_CLIENT_HOST) << "CLIENT_IS_HOST";
+      return ss.str();
+    }
+
+    std::string serializeRequestStartGame() {
+      std::ostringstream ss;
+      ss << static_cast<char>(REQUEST_START_GAME) << "START_GAME_SERVER";
+      return ss.str();
+    }
+
+    bool sendRaw(const char* msg, SOCKET socket) {
         if (socket == INVALID_SOCKET) return false;
 
         int totalSent = 0;
         int msgLength = strlen(msg);
-        while (totalSent < msgLength && *running) {
+        while (totalSent < msgLength) {
             int bytesSent = send(socket, msg + totalSent, msgLength - totalSent, 0);
             if (bytesSent <= 0) {
                 LOG("Failed to send message to socket %d", socket);

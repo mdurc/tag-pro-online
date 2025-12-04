@@ -196,6 +196,11 @@ void Server::listenForClients() {
         }
 
         assignPlayerId(clientRaw);
+        if (game->playerCount() == 1) {
+          std::string message = Protocol::serializeMarkClientHost();
+          std::string framed = Protocol::frameMessage(message);
+          Protocol::sendRaw(framed.c_str(), clientRaw->socket);
+        }
         broadcastPlayerList();
     }
     LOG("[Server] Stopped listening for Clients.");
@@ -272,6 +277,10 @@ void Server::processClientMessage(const std::string& message) {
                 game->queuePlayerInput(playerId, inputX, inputY);
             }
             break;
+        case Protocol::REQUEST_START_GAME: {
+              start_game();
+              break;
+            }
         default:
             LOG("[Server] Unknown message from client: %s", message.c_str());
             break;
@@ -328,7 +337,7 @@ void Server::assignPlayerId(ClientInfo* client) {
     if (client->running && client->socket != INVALID_SOCKET) {
       std::string msg = Protocol::serializePlayerJoined(client->playerId);
       std::string framed = Protocol::frameMessage(msg);
-      Protocol::sendRaw(framed.c_str(), client->socket, &client->running);
+      Protocol::sendRaw(framed.c_str(), client->socket);
     }
 }
 
@@ -344,7 +353,7 @@ void Server::notifyAll(const char* msg, SOCKET avoid) {
         }
     }
     for (auto& [sock, running] : sockets) {
-        Protocol::sendRaw(msg, sock, running);
+        Protocol::sendRaw(msg, sock);
     }
 }
 

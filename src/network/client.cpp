@@ -145,7 +145,7 @@ void Client::sendMessage(const std::string& message) {
     }
 
     std::string framed = Protocol::frameMessage(message);
-    Protocol::sendRaw(framed.c_str(), clientSocket, &isRunning);
+    Protocol::sendRaw(framed.c_str(), clientSocket);
 }
 
 void Client::sendPlayerInput(float x, float y) {

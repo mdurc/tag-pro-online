@@ -144,6 +144,10 @@ void StartScreen::onClientMessageReceived(const std::string& message) {
             }
             break;
         }
+        case Protocol::MARK_CLIENT_HOST: {
+            lobbyScreen->setHost(true);
+            break;
+        }
         default: {
             LOG("Unexpected message relayed from client to StartScreen (%d): %s",
                 messageType, message.c_str());
@@ -154,7 +158,6 @@ void StartScreen::onClientMessageReceived(const std::string& message) {
 
 void StartScreen::onClientConnectionChanged(bool connected) {
     if (connected) {
-        lobbyScreen->setHost(server != nullptr);
         stackedWidget->setCurrentWidget(lobbyScreen);
     } else {
         LOG("[StartScreen] Returning to main menu after disconnecting");
@@ -209,6 +212,10 @@ void StartScreen::returnToMainMenu() {
 void StartScreen::onLobbyHostStartGame() {
     if (server) {
         server->start_game();
+    } else {
+      std::string message = Protocol::serializeRequestStartGame();
+      std::string framed = Protocol::frameMessage(message);
+      client->sendMessage(message);
     }
 }
 

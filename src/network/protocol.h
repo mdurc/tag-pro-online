@@ -16,7 +16,9 @@ namespace Protocol {
         REQUEST_PLAYER_LIST = 0x04,
         PLAYER_JOINED = 0x05, // used to assign a client with playerId from server
         PLAYER_LEFT = 0x06, // TODO
-        SERVER_SHUTDOWN = 0xff
+        MARK_CLIENT_HOST = 0x07,
+        REQUEST_START_GAME = 0x08,
+        SERVER_SHUTDOWN = 0xff,
     };
 
     std::string serializeGameState(const GameState& state);
@@ -34,10 +36,13 @@ namespace Protocol {
     std::string serializeServerShutdown();
     bool deserializeServerShutdown(const std::string& data);
 
+    std::string serializeMarkClientHost();
+    std::string serializeRequestStartGame();
+
     std::string frameMessage(const std::string& data);
     bool extractMessage(std::string& buffer, std::string& message);
 
-    bool sendRaw(const char* msg, SOCKET socket, std::atomic<bool>* running);
+    bool sendRaw(const char* msg, SOCKET socket);
 }
 
 #endif // PROTOCOL_H
