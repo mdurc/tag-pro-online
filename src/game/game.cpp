@@ -185,16 +185,19 @@ void Game::resolveCollisions() {
     if (!player1) continue;
     if (player1->respawnTimer != 0) continue;
 
+    if (tryFlagGrab(*player1)){
+        // Notify players with audio?
+    }
+
     for (int j = i + 1; j < playerIds.size(); ++j) {
       PlayerState* player2 = getPlayerState(playerIds[j]);
       if (!player2) continue;
       if (player2->respawnTimer != 0) continue;
 
-      float dx = player1->x - player2->x;
-      float dy = player1->y - player2->y;
-      float distance = std::sqrt(dx * dx + dy * dy);
-
       if (checkCollision(player1->x, player1->y, player2->x, player2->y)) {
+        float dx = player1->x - player2->x;
+        float dy = player1->y - player2->y;
+        float distance = std::sqrt(dx * dx + dy * dy);
         float nx = dx / distance;
         float ny = dy / distance;
         // Shift position to no longer be colliding;
@@ -237,6 +240,25 @@ void Game::resolveCollisions() {
       }
     }
   }
+}
+
+bool Game::tryFlagGrab(PlayerState& player) {
+    uint8_t team = player.team;
+
+    if (team == 0 && currentState.blueFlag == 0) {
+        if (checkCollision(player.x, player.y, blueFlagX, blueFlagY)) {
+            player.hasFlag = true;
+            currentState.blueFlag = player.id;
+            return true;
+        }
+    } else {
+        if (checkCollision(player.x, player.y, redFlagX, redFlagY)) {
+            player.hasFlag = true;
+            currentState.redFlag = player.id;
+            return true;
+        }
+    }
+    return false;
 }
 
 bool Game::checkCollision(float x1, float y1, float x2, float y2) {

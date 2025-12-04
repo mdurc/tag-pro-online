@@ -13,6 +13,7 @@ namespace Protocol {
       ss << state.lobbyId << '|' << static_cast<int>(state.mapId) << '|'
          << static_cast<int>(state.redScore) << '|'
          << static_cast<int>(state.blueScore) << '|';
+      ss << state.redFlag << '|' << state.blueFlag << '|';
       for (const auto& pair : state.players) {
         const PlayerState& player = pair.second;
         ss << player.id << ',' << player.name << ',' << player.x << ',' << player.y
@@ -31,6 +32,7 @@ namespace Protocol {
       char delim;
       ss >> state.lobbyId >> delim >> state.mapId >> delim >> state.redScore >>
         delim >> state.blueScore >> delim;
+      ss >> state.redFlag >> delim >> state.blueFlag >> delim;
       std::string playerData;
       while (std::getline(ss, playerData, ';') && !playerData.empty()) {
         std::istringstream playerStream(playerData);

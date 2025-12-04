@@ -47,6 +47,7 @@ public:
     constexpr static float blueFlagY = arenaHeight / 2.0f;
 private:
     float getTeamSpawnXLocation(uint8_t team);
+    bool tryFlagGrab(PlayerState& player);
     void applyPhysics(PlayerState& player, float deltaTimeSec);
     void checkBoundaries(PlayerState& player);
     void pop(PlayerState& player);

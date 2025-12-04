@@ -63,6 +63,62 @@ void GameScreen::applyGameState(const GameState& state) {
       removePlayerGraphics(playerId);
     }
   }
+  updateRedFlag(state.redFlag);
+  updateBlueFlag(state.blueFlag);
+}
+
+void GameScreen::updateRedFlag(uint32_t redFlag) {
+    if (this->redFlag == nullptr) {
+        QPolygonF trianglePolygon;
+        trianglePolygon << QPointF(0, -10)  // Top
+                        << QPointF(-10, 10) // Bottom-Left
+                        << QPointF(10, 10); // Bottom-Right
+        QGraphicsPolygonItem *triangleItem = new QGraphicsPolygonItem(trianglePolygon);
+
+        triangleItem->setBrush(Qt::red);          // Fill color
+        triangleItem->setPen(QPen(Qt::black, 2));  // Border width and color
+        triangleItem->setZValue(1);
+
+        scene->addItem(triangleItem);
+        this->redFlag = triangleItem;
+    }
+
+    // update positions
+    QGraphicsPolygonItem* flag = this->redFlag;
+
+    auto player = playerGraphics.constFind(redFlag);
+    if (player != playerGraphics.constEnd()) {
+        flag->setPos(player.value()->pos() + QPointF(0.0f, -20.0f));
+    } else {
+        flag->setPos(Game::redFlagX, Game::redFlagY);
+    }
+}
+
+void GameScreen::updateBlueFlag(uint32_t blueFlag) {
+    if (this->blueFlag == nullptr) {
+        QPolygonF trianglePolygon;
+        trianglePolygon << QPointF(0, -10)  // Top
+                        << QPointF(-10, 10) // Bottom-Left
+                        << QPointF(10, 10); // Bottom-Right
+        QGraphicsPolygonItem *triangleItem = new QGraphicsPolygonItem(trianglePolygon);
+
+        triangleItem->setBrush(Qt::blue);          // Fill color
+        triangleItem->setPen(QPen(Qt::black, 2));  // Border width and color
+        triangleItem->setZValue(1);
+
+        scene->addItem(triangleItem);
+        this->blueFlag = triangleItem;
+    }
+
+    // update positions
+    QGraphicsPolygonItem* flag = this->blueFlag;
+
+    auto player = playerGraphics.constFind(blueFlag);
+    if (player != playerGraphics.constEnd()) {
+        flag->setPos(player.value()->pos() + QPointF(0.0f, -20.0f));
+    } else {
+        flag->setPos(Game::blueFlagX, Game::blueFlagY);
+    }
 }
 
 void GameScreen::updatePlayerGraphics(uint32_t playerId,

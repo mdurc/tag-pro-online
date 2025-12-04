@@ -36,6 +36,8 @@ protected:
 
 private:
     void setupScene();
+    void updateRedFlag(uint32_t redFlag);
+    void updateBlueFlag(uint32_t blueFlag);
     void updatePlayerGraphics(uint32_t playerId, const PlayerState& state);
     void removePlayerGraphics(uint32_t playerId);
     QColor getTeamColor(uint8_t team);
@@ -48,6 +50,7 @@ private:
     InputHandler inputs;
     QMap<uint32_t, QGraphicsEllipseItem*> playerGraphics;
     QMap<uint32_t, QGraphicsTextItem*> playerNames;
+    QGraphicsPolygonItem* redFlag = nullptr, *blueFlag = nullptr;
 };
 
 #endif
