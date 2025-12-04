@@ -6,6 +6,7 @@
 #include <QGraphicsView>
 #include <QKeyEvent>
 #include <QTimer>
+#include "../game/game.h"
 #include "../network/client.h"
 #include "../game/game_state.h"
 

@@ -30,6 +30,16 @@ public:
     PlayerState* getPlayerState(uint32_t playerId);
 
     void update(uint32_t deltaTimeMs);
+
+    constexpr static float playerRadius = 15.0f;
+    constexpr static float playerAcceleration = 80.0f;
+    constexpr static float playerMaxSpeed = 1000.0f;
+    constexpr static float playerFriction = 0.985f;
+    constexpr static float playerRestitution = 0.2f;
+    constexpr static float wallRestitution = 0.15f;
+
+    constexpr static float arenaWidth = 800.0f;
+    constexpr static float arenaHeight = 600.0f;
 private:
     void applyPhysics(PlayerState& player, float deltaTimeSec);
     void checkBoundaries(PlayerState& player);
@@ -41,15 +51,6 @@ private:
 
     std::queue<PlayerInput> inputQueue;
     mutable std::mutex inputQueueMutex;
-
-    const float playerRadius = 15.0f;
-    const float playerAcceleration = 100.0f;
-    const float playerMaxSpeed = 1000.0f;
-    const float playerFriction = 0.99f;
-    const float playerRestitution = 0.2f;
-
-    const float arenaWidth = 800.0f;
-    const float arenaHeight = 600.0f;
 };
 
 #endif // GAME_H

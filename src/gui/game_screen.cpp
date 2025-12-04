@@ -26,6 +26,8 @@ GameScreen::GameScreen(QWidget* parent) : QWidget(parent) {
   view->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
   view->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
   view->setFocusPolicy(Qt::StrongFocus);
+
+  view->setFrameShape(QFrame::NoFrame);
 }
 
 GameScreen::~GameScreen() { inputTimer->stop(); }
@@ -35,13 +37,19 @@ void GameScreen::setupScene() {
   scene = new QGraphicsScene(this);
   view = new QGraphicsView(scene);
   layout->addWidget(view);
+  layout->setContentsMargins(0, 0, 0, 0);
+  layout->setSpacing(0);
 
-  scene->setSceneRect(0, 0, 800, 600);
+  scene->setSceneRect(0, 0, Game::arenaWidth, Game::arenaHeight);
   scene->setBackgroundBrush(QBrush(QColor(50, 50, 50)));
 
   QGraphicsLineItem* centerLine =
       scene->addLine(400, 0, 400, 600, QPen(Qt::white, 2, Qt::DashLine));
   centerLine->setZValue(-1);
+
+  // Add a debug rectangle representing the arena boundaries
+  QGraphicsRectItem* bounds = scene->addRect(0, 0, Game::arenaWidth, Game::arenaHeight, QPen(Qt::red, 2));
+  bounds->setZValue(0); // Draw behind players
 }
 
 void GameScreen::applyGameState(const GameState& state) {
@@ -64,7 +72,7 @@ void GameScreen::updatePlayerGraphics(uint32_t playerId,
     QColor color = getTeamColor(state.team);
 
     QGraphicsEllipseItem* circle =
-        scene->addEllipse(-15, -15, 30, 30, QPen(Qt::black, 2), QBrush(color));
+        scene->addEllipse(-Game::playerRadius, -Game::playerRadius, Game::playerRadius * 2, Game::playerRadius * 2, QPen(Qt::black, 2), QBrush(color));
     circle->setZValue(1);
 
     QGraphicsTextItem* nameTag = scene->addText(QString::fromStdString(state.name));

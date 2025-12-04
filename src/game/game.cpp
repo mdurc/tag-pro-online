@@ -117,23 +117,39 @@ void Game::applyPhysics(PlayerState& player, float deltaTimeSec) {
 }
 
 void Game::checkBoundaries(PlayerState& player) {
-  // X boundaries
-  if (player.x < playerRadius) {
-    player.x = playerRadius;
-    player.velocityX = 0;
-  } else if (player.x > arenaWidth - playerRadius) {
-    player.x = arenaWidth - playerRadius;
-    player.velocityX = 0;
-  }
+    // Left Wall
+    if (player.x < playerRadius) {
+        player.x = playerRadius;
 
-  // Y boundaries
-  if (player.y < playerRadius) {
-    player.y = playerRadius;
-    player.velocityY = 0;
-  } else if (player.y > arenaHeight - playerRadius) {
-    player.y = arenaHeight - playerRadius;
-    player.velocityY = 0;
-  }
+        if (player.velocityX < 0) {
+            player.velocityX = -player.velocityX * wallRestitution;
+        }
+    } 
+    // Right Wall
+    else if (player.x > arenaWidth - playerRadius) {
+        player.x = arenaWidth - playerRadius;
+
+        if (player.velocityX > 0) {
+            player.velocityX = -player.velocityX * wallRestitution;
+        }
+    }
+
+    // Top Wall
+    if (player.y < playerRadius) {
+        player.y = playerRadius;
+
+        if (player.velocityY < 0) {
+            player.velocityY = -player.velocityY * wallRestitution;
+        }
+    } 
+    // Bottom Wall
+    else if (player.y > arenaHeight - playerRadius) {
+        player.y = arenaHeight - playerRadius;
+
+        if (player.velocityY > 0) {
+            player.velocityY = -player.velocityY * wallRestitution;
+        }
+    }
 }
 
 void Game::resolveCollisions() {
