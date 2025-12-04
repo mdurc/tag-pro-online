@@ -24,8 +24,8 @@ struct PlayerState {
 };
 
 struct GameState {
-  uint32_t lobbyId;
-  uint8_t mapId, redScore, blueScore;
+  uint32_t lobbyId = 0;
+  uint8_t mapId = 0, redScore = 0, blueScore = 0;
   std::unordered_map<uint32_t, PlayerState> players;
   PlayerState* getPlayer(uint32_t playerId) {
     auto it = players.find(playerId);
