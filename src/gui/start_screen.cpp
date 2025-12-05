@@ -261,11 +261,11 @@ QWidget* StartScreen::createHostScreen() {
   portInput->setPlaceholderText("Port");
 
   QComboBox* mapCombo = new QComboBox();
-  mapCombo->addItems({"Classic", "Ricochet"});
+  mapCombo->addItems({"Classic"});
 
   QComboBox* maxPlayers = new QComboBox();
-  maxPlayers->addItems({"2", "4", "6", "8"});
-  maxPlayers->setCurrentText("8");
+  maxPlayers->addItems({"4"});
+  maxPlayers->setCurrentText("4");
 
   QHBoxLayout* buttons = new QHBoxLayout();
   QPushButton* backBtn = new QPushButton("Back");
