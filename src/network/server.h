@@ -65,8 +65,6 @@ private:
     std::vector<std::unique_ptr<ClientInfo>> clientThreads;
 
     std::unique_ptr<Game> game;
-
-    std::atomic<uint32_t> nextPlayerId{1};
 };
 
 #endif // SERVER_H

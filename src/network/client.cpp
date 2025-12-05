@@ -75,7 +75,7 @@ void Client::disconnect() {
         if (std::this_thread::get_id() != receivingThread.get_id()) {
             receivingThread.join();
         } else {
-            receivingThread.detach(); 
+            receivingThread.detach();
         }
     }
     LOG("[Client] receivingThread has joined.");

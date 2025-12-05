@@ -25,14 +25,13 @@ struct PlayerState {
 
 struct GameState {
   uint32_t lobbyId = 0;
+  uint32_t redFlag = 0, blueFlag = 0; // wil be player's id when picked up, 0 when not
   uint8_t mapId = 0, redScore = 0, blueScore = 0;
   std::unordered_map<uint32_t, PlayerState> players;
   PlayerState* getPlayer(uint32_t playerId) {
     auto it = players.find(playerId);
     return it != players.end() ? &it->second : nullptr;
   }
-  // Will be player's id when picked up, 0 when not
-  uint32_t redFlag = 0, blueFlag = 0;
 };
 
 #endif // GAME_STATE_H

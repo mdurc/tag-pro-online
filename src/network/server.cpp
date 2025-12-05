@@ -180,7 +180,7 @@ void Server::listenForClients() {
             continue; // Don't exit, just try next connection
         }
 
-        uint32_t newPlayerId = nextPlayerId++;
+        uint32_t newPlayerId = game->getNextPlayerId();
         LOG("[Server] New client connected, playerId: %d", newPlayerId);
 
         auto newClient = std::make_unique<ClientInfo>(clientSocket, newPlayerId);
@@ -196,7 +196,7 @@ void Server::listenForClients() {
         }
 
         assignPlayerId(clientRaw);
-        if (game->playerCount() == 1) {
+        if (game->getPlayerCount() == 1) {
           std::string message = Protocol::serializeMarkClientHost();
           std::string framed = Protocol::frameMessage(message);
           Protocol::sendRaw(framed.c_str(), clientRaw->socket);

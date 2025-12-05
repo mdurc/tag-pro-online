@@ -28,7 +28,8 @@ public:
     // getters
     GameState getGameState() const { return currentState; }
     PlayerState* getPlayerState(uint32_t playerId);
-    size_t playerCount() const { return currentState.players.size(); }
+    size_t getPlayerCount() const;
+    int32_t getNextPlayerId() const;
 
     void update(uint32_t deltaTimeMs);
 

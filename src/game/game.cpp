@@ -14,6 +14,8 @@ Game::Game(uint32_t lobbyId) {
 }
 void Game::start() {
     GAME_LOG("Started lobby %d", currentState.lobbyId);
+    currentState.mapId = currentState.redScore = currentState.blueScore = 0;
+    currentState.redFlag = currentState.blueFlag = 0;
 }
 
 void Game::stop() {
@@ -30,8 +32,7 @@ float Game::getTeamSpawnXLocation(uint8_t team) {
 
 uint32_t Game::addPlayer(const std::string& name, uint8_t team) {
     std::lock_guard<std::mutex> lock(stateMutex);
-    static uint32_t nextPlayerId = 1;
-    uint32_t playerId = nextPlayerId++;
+    uint32_t playerId = getNextPlayerId();
 
     PlayerState player(playerId, name, team);
 
@@ -46,7 +47,13 @@ uint32_t Game::addPlayer(const std::string& name, uint8_t team) {
 bool Game::removePlayer(uint32_t playerId) {
     std::lock_guard<std::mutex> lock(stateMutex);
     GAME_LOG("%s removed from game", currentState.players[playerId].name.c_str());
-    return currentState.players.erase(playerId) > 0;
+    bool res = currentState.players.erase(playerId) > 0;
+    if (res && currentState.players.empty()) {
+      // restart score
+      currentState.redScore = currentState.blueScore = 0;
+      currentState.redFlag = currentState.blueFlag = 0;
+    }
+    return res;
 }
 
 void Game::pop(PlayerState& player) {
@@ -80,6 +87,15 @@ bool Game::setPlayerTeam(uint32_t playerId, uint8_t team) {
 PlayerState* Game::getPlayerState(uint32_t playerId) {
     // caller locks
     return currentState.getPlayer(playerId);
+}
+
+size_t Game::getPlayerCount() const { return currentState.players.size(); }
+int32_t Game::getNextPlayerId() const {
+  int32_t next = 1;
+  while (currentState.players.find(next) != currentState.players.end()) {
+    ++next;
+  }
+  return next;
 }
 
 void Game::update(uint32_t deltaTimeMs) {
