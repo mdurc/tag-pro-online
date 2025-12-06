@@ -1,4 +1,4 @@
-#include "protocol.h"
+#include "network/protocol.h"
 
 #include <cstring>
 #include <sstream>

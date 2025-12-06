@@ -1,9 +1,9 @@
-#include "server.h"
+#include "network/server.h"
 
 #include <QDebug>
 #include <mutex>
-#include "network.h"
-#include "protocol.h"
+#include "network/network.h"
+#include "network/protocol.h"
 
 Server::Server(unsigned int port) : port(port) {
     game = std::make_unique<Game>(1);

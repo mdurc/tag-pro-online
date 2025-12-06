@@ -1,6 +1,7 @@
 #include <QApplication>
 #include <QMainWindow>
 
+#include <csignal>
 #include "gui/start_screen.h"
 #include "network/server.h"
 

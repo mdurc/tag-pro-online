@@ -1,6 +1,6 @@
-#include "client.h"
-#include "network.h"
-#include "protocol.h"
+#include "network/client.h"
+#include "network/network.h"
+#include "network/protocol.h"
 
 Client::Client(): clientSocket(INVALID_SOCKET) {
     createSocket();

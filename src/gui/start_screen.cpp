@@ -1,4 +1,4 @@
-#include "start_screen.h"
+#include "gui/start_screen.h"
 
 #include <QApplication>
 #include <QComboBox>
@@ -8,7 +8,7 @@
 #include <QListWidget>
 #include <QPushButton>
 #include <QVBoxLayout>
-#include "../network/protocol.h"
+#include "network/protocol.h"
 
 LobbyScreen::LobbyScreen(QWidget* parent) : QWidget(parent) {
     QVBoxLayout* layout = new QVBoxLayout(this);

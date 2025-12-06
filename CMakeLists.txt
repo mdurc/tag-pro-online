@@ -11,11 +11,10 @@ find_package(Qt6 REQUIRED COMPONENTS Core Network Widgets)
 
 set(PROJECT_SOURCES src/main.cpp)
 file(GLOB_RECURSE PROJECT_SOURCES
-     src/*.cpp src/*.h
-     src/game/*.cpp src/game/*.h
-     src/network/*.cpp src/network/*.h
-     src/gui/*.cpp src/gui/*.h
+  src/*.cpp
+  include/*.h
 )
 
 add_executable(TagPro ${PROJECT_SOURCES})
+target_include_directories(TagPro PRIVATE include)
 target_link_libraries(TagPro Qt6::Core Qt6::Widgets Qt6::Network)

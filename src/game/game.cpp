@@ -1,7 +1,7 @@
-#include "game.h"
+#include "game/game.h"
 
 #include <QDebug>
-#include "game_state.h"
+#include "game/game_state.h"
 
 #define GAME_LOG(fmt, ...) \
   { qInfo().noquote() << "[GAME] " << QString().asprintf(fmt, ##__VA_ARGS__); }

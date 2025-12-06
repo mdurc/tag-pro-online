@@ -1,9 +1,9 @@
-#include "game_screen.h"
+#include "gui/game_screen.h"
 
 #include <QDebug>
 #include <QGraphicsTextItem>
 #include <QVBoxLayout>
-#include "../game/game.h"
+#include "game/game.h"
 
 void InputHandler::keyPressed(int key) { keysPressed.insert(key); }
 void InputHandler::keyReleased(int key) { keysPressed.remove(key); }
