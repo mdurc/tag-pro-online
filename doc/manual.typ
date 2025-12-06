@@ -32,7 +32,7 @@ See `doc/readme.txt` for installation/development notes and build instructions.
 == Dedicated Server
 When running the program as a server-dedicated instance, there is no GUI interface.
 
-#image("imgs/server-only.png", width: 40%)
+#image("imgs/server-only.png", width: 35%)
 
 == GUI Application
 === Main Menu
@@ -101,6 +101,6 @@ The game features:
 - Players can leave mid-game (returns to main menu)
 - Server continues until all players disconnect or host closes
 
-#pagebreak()
-
-== Troubleshooting and Common Issues
+// #pagebreak()
+//
+// == Troubleshooting and Common Issues

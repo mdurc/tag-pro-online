@@ -6,8 +6,17 @@
 
 std::mutex consoleMutex;
 
+std::atomic<bool> running{true};
+void signalHandler(int signum) {
+    running = false;
+    printf("\n[Server] Shutdown signal received (%d)\n", signum);
+}
+
 int main(int argc, char* argv[]) {
   if (argc > 1 && strcmp(argv[1], "--server") == 0) {
+    signal(SIGINT, signalHandler);
+    signal(SIGTERM, signalHandler);
+
     unsigned int port = 12345;
     if (argc > 2) port = atoi(argv[2]);
 
@@ -21,9 +30,11 @@ int main(int argc, char* argv[]) {
     printf("Press Ctrl+C to stop\n");
 
     server.start(false);
-    while (true) {
+    while (running) {
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
+
+    server.stop();
 
     return 0;
   }

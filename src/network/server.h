@@ -17,9 +17,11 @@ struct ClientInfo {
     std::thread thread;
     std::atomic<bool> running{true}; // Flag to track status
     std::string receiveBuffer;
+    std::string clientIP;
 
     // Helper to make moving this struct into a vector easier
-    ClientInfo(SOCKET s, uint32_t id) : socket(s), playerId(id) {}
+    ClientInfo(SOCKET s, uint32_t id, const std::string& ip = "")
+      : socket(s), playerId(id), clientIP(ip) {}
 
     // Disable copying (threads can't be copied), allow moving
     ClientInfo(const ClientInfo&) = delete;
@@ -51,6 +53,8 @@ private:
     void assignPlayerId(ClientInfo* client);
     void notifyAll(const char* msg, SOCKET avoid = INVALID_SOCKET);
     void notifyAllOthers(const char* msg, SOCKET socket);
+
+    std::string getClientIP(sockaddr_in* clientAddr);
 
     unsigned int port;
     SOCKET serverSocket = INVALID_SOCKET;

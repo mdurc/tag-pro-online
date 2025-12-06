@@ -15,6 +15,12 @@ Server::~Server() {
     stop();
 }
 
+std::string Server::getClientIP(sockaddr_in* clientAddr) {
+    char ipStr[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &(clientAddr->sin_addr), ipStr, INET_ADDRSTRLEN);
+    return std::string(ipStr);
+}
+
 bool Server::init() {
     if (!initSockets()) {
         qErrnoWarning("[Server] Socket initialization failed.\n", 200);
@@ -26,6 +32,12 @@ bool Server::init() {
         qErrnoWarning("[Server] Error creating socket.\n", 200);
         cleanupSockets();
         return false;
+    }
+
+    int opt = 1;
+    if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR,
+          (char*)&opt, sizeof(opt)) == SOCKET_ERROR) {
+        LOG("[Server] Warning: Could not set SO_REUSEADDR");
     }
 
     sockaddr_in serverAddr;
@@ -47,7 +59,7 @@ bool Server::init() {
         return false;
     }
 
-    LOG("[Server] Listening on port %d at ip 127.0.0.1", port);
+    LOG("[Server] Listening on port %d", port);
     return true;
 }
 
@@ -156,7 +168,7 @@ void Server::listenForClients() {
         int activity = select(serverSocket + 1, &readfds, nullptr, nullptr, &timeout);
 
         if (activity < 0) {
-            LOG("[Server] Select error");
+            // LOG("[Server] Select error");
             break; // Exit loop on system error
         }
 
@@ -180,10 +192,12 @@ void Server::listenForClients() {
             continue; // Don't exit, just try next connection
         }
 
-        uint32_t newPlayerId = game->getNextPlayerId();
-        LOG("[Server] New client connected, playerId: %d", newPlayerId);
+        std::string clientIP = getClientIP(&clientAddr);
 
-        auto newClient = std::make_unique<ClientInfo>(clientSocket, newPlayerId);
+        uint32_t newPlayerId = game->getNextPlayerId();
+        LOG("[Server] New client connected from %s, playerId: %d", clientIP.c_str(), newPlayerId);
+
+        auto newClient = std::make_unique<ClientInfo>(clientSocket, newPlayerId, clientIP);
         ClientInfo* clientRaw = newClient.get();
 
         {
