@@ -1,6 +1,12 @@
 This program can be built and ran on both Windows and Linux.
 The build system is CMake, which must be installed to build the project.
 
+Running the server
+- Open the Qt terminal, or ensure you have Qt in your system PATH
+	On windows, open the Qt terminal (Windows + "Qt <space> <version #>")
+- Run the binary (TagPro.exe, ./TagPro)
+- If you only want to host, run the binary with the --server <port#> arguments.
+
 Developement and testing done on:
 - macOS 14.4.1 (Apple M1 Silicon)
 - Windows 11 VM on M1 mac (QEMU 7.2 Arm)
